@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wander AI - Travel Browser
 
-## Getting Started
+A next-gen, map-first travel discovery and planning platform that transforms travel discovery into a browser-like experience.
 
-First, run the development server:
+**Live Demo:** Coming Soon
 
+## 🎯 Project Overview
+
+Wander AI combines a ChatGPT-style conversational interface, a map canvas for visual exploration, and a creator community hub for authentic, data-rich itineraries. Users can discover, remix, and personalize travel content sourced from creators into interactive itineraries pinned on a map.
+
+## ✨ Features
+
+- **Clean Landing Page** - Minimal, premium UI inspired by Apple, Notion, and Linear
+- **Authentication Flow** - Login and Sign Up pages with Creator/Traveler selection
+- **Smooth Animations** - Framer Motion powered transitions
+- **Responsive Design** - Works seamlessly on all devices
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/travel-browser.git
+cd travel-browser
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Run the development server:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Learn More
+## 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework:** Next.js 16 (App Router)
+- **Styling:** TailwindCSS v4
+- **Animations:** Framer Motion
+- **Language:** TypeScript
+- **Deployment:** Vercel (coming soon)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+travel-browser/
+├── app/
+│   ├── login/          # Login page
+│   ├── signup/         # Sign up page
+│   ├── page.tsx        # Landing page
+│   └── layout.tsx      # Root layout
+├── PLAN.md             # Development plan
+├── PRD.md              # Product requirements document
+└── README.md           # This file
+```
 
-## Deploy on Vercel
+## 🎨 Design Philosophy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Minimal, Premium UI** - Clean white background with black text
+- **Typography-First** - Elegant typography hierarchy
+- **Subtle Depth** - Soft shadows and transitions
+- **Consistent Spacing** - Following Apple/Notion design principles
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📝 Documentation
+
+- [PRD.md](./PRD.md) - Product Requirements Document
+- [PLAN.md](./PLAN.md) - Development Plan
+
+## 🚧 In Progress
+
+- [ ] Supabase authentication integration
+- [ ] Main app layout with sidebar
+- [ ] Chat interface
+- [ ] Map integration
+- [ ] Itinerary creation system
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is private and proprietary.
+
+## 🙏 Acknowledgments
+
+- Inspired by ChatGPT, Apple Design, Notion, and Linear
+- Built with Next.js and TailwindCSS
+
+---
+
+Made with ❤️ by the Wander AI team
