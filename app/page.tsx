@@ -2,8 +2,40 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const { user } = await getCurrentUser();
+    if (user) {
+      // User is logged in, redirect to chat
+      router.push("/chat");
+    } else {
+      // User is not logged in, show landing page
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-white">
 

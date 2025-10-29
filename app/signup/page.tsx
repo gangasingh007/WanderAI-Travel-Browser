@@ -3,19 +3,56 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
+import { signUp } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
+  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userType, setUserType] = useState<"traveler" | "creator">("traveler");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement Supabase authentication
-    console.log("Signup:", { email, password, userType });
-    setTimeout(() => setIsLoading(false), 1000);
+    setError(null);
+
+    try {
+      console.log("[Signup] submitting", {
+        email,
+        username,
+        userType,
+        hasFullName: Boolean(fullName),
+      });
+      const { data, error: signupError } = await signUp(email, password, userType, fullName, username);
+
+      if (signupError) {
+        console.error("[Signup] signUp error", signupError);
+        setError((signupError as any)?.message ?? "Signup failed");
+        setIsLoading(false);
+      } else if (data?.user) {
+        // Check if email confirmation is required
+        if (data.session) {
+          // User is immediately logged in
+          console.log("[Signup] success with active session", { userId: data.user.id });
+          router.push("/chat");
+        } else {
+          // Email confirmation required
+          console.log("[Signup] success, email confirmation required", { userId: data.user.id });
+          setSuccess(true);
+          setIsLoading(false);
+        }
+      }
+    } catch (err: any) {
+      console.error("[Signup] unexpected error", err);
+      setError(err.message || "An error occurred");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -38,7 +75,60 @@ export default function SignupPage() {
 
         {/* Signup Form */}
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+              Please check your email to verify your account.
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Full Name Input */}
+            <div>
+              <label
+                htmlFor="fullName"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                autoComplete="name"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black"
+                placeholder="John Doe"
+              />
+            </div>
+
+            {/* Username Input */}
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                required
+                autoComplete="username"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black"
+                placeholder="johndoe"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Only letters, numbers, and underscores
+              </p>
+            </div>
+
             {/* User Type Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -90,7 +180,8 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                autoComplete="email"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black"
                 placeholder="you@example.com"
               />
             </div>
@@ -110,7 +201,8 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                autoComplete="new-password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black"
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-500 mt-1">

@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Model (extends Supabase auth.users)
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  username          String?        @unique
+  full_name         String?
+  avatar_url        String?
+  user_type         UserType       @default(TRAVELER) // CREATOR or TRAVELER
+  bio               String?
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  // Relations
+  itineraries       Itinerary[]
+  itinerary_pins    ItineraryPin[]
+  saved_itineraries SavedItinerary[]
+  follows           Follow[]       @relation("UserFollows")
+  followers         Follow[]        @relation("UserFollowers")
+  chat_sessions     ChatSession[]
+
+  @@map("users")
+}
+
+enum UserType {
+  TRAVELER
+  CREATOR
+}
+
+// Itinerary Model
+model Itinerary {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  created_by  String
+  is_public   Boolean        @default(false)
+  thumbnail   String?
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  // Relations
+  user        User           @relation(fields: [created_by], references: [id], onDelete: Cascade)
+  pins        ItineraryPin[]
+
+  @@index([created_by])
+  @@index([is_public])
+  @@map("itineraries")
+}
+
+// Itinerary Pin (locations on map)
+model ItineraryPin {
+  id           String    @id @default(uuid())
+  itinerary_id String
+  latitude     Float
+  longitude    Float
+  title        String
+  description  String?
+  order        Int       @default(0)
+  date         DateTime?
+  photos       String[]  @default([])
+  videos       String[]  @default([])
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  // Relations
+  itinerary    Itinerary @relation(fields: [itinerary_id], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [created_by], references: [id])
+  created_by   String
+
+  @@index([itinerary_id])
+  @@index([created_by])
+  @@map("itinerary_pins")
+}
+
+// Follow System (User follows)
+model Follow {
+  id          String   @id @default(uuid())
+  follower_id String   // Who is following
+  following_id String // Who is being followed
+  created_at  DateTime @default(now())
+
+  // Relations
+  follower    User     @relation("UserFollows", fields: [follower_id], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@unique([follower_id, following_id])
+  @@index([follower_id])
+  @@index([following_id])
+  @@map("follows")
+}
+
+// Saved Itineraries (User bookmarks)
+model SavedItinerary {
+  id           String    @id @default(uuid())
+  user_id      String
+  itinerary_id String
+  created_at   DateTime  @default(now())
+
+  // Relations
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  // Note: Itinerary relation would go here if needed
+
+  @@unique([user_id, itinerary_id])
+  @@index([user_id])
+  @@map("saved_itineraries")
+}
+
+// Chat Sessions
+model ChatSession {
+  id         String   @id @default(uuid())
+  user_id    String
+  title      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages   ChatMessage[]
+
+  @@index([user_id])
+  @@map("chat_sessions")
+}
+
+// Chat Messages
+model ChatMessage {
+  id          String        @id @default(uuid())
+  session_id  String
+  role        MessageRole   @default(USER)
+  content     String
+  created_at  DateTime      @default(now())
+
+  // Relations
+  session     ChatSession   @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  @@index([session_id])
+  @@map("chat_messages")
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}

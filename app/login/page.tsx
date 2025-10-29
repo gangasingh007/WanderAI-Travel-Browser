@@ -3,18 +3,36 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
+import { signIn } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement Supabase authentication
-    console.log("Login:", { email, password });
-    setTimeout(() => setIsLoading(false), 1000);
+    setError(null);
+
+    try {
+      const { data, error } = await signIn(email, password);
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+      } else if (data?.user) {
+        // Success! Redirect to the main app
+        router.push("/chat");
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -37,6 +55,11 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div>
@@ -52,7 +75,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                autoComplete="email"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black"
                 placeholder="you@example.com"
               />
             </div>
@@ -71,7 +95,8 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                autoComplete="current-password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-black"
                 placeholder="••••••••"
               />
             </div>
@@ -117,6 +142,15 @@ export default function LoginPage() {
           <div className="mt-6 space-y-3">
             <button
               type="button"
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signInWithOAuth({
+                  provider: "google",
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                  },
+                });
+              }}
               className="w-full flex items-center justify-center gap-3 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
