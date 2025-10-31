@@ -1,9 +1,11 @@
+// /components/sidebar/Sidebar.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MessageSquare } from "lucide-react";
 
 type NavItem = {
   label: string;
@@ -30,7 +32,7 @@ const Icon = ({ path }: { path: string }) => (
 const navItems: NavItem[] = [
   {
     label: "Chat",
-    href: "/chat",
+    href: "/chat/new", // <-- Corrected link
     icon: <Icon path="M21 15a4 4 0 0 1-4 4H8l-5 5V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />,
   },
   {
@@ -60,9 +62,38 @@ const navItems: NavItem[] = [
   },
 ];
 
+type Chat = {
+  id: string;
+  title: string;
+  createdAt: string;
+  userId: string;
+};
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/chats");
+        if (response.ok) {
+          const data = await response.json();
+          setChats(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch chats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, []);
 
   return (
     <motion.aside
@@ -100,7 +131,7 @@ export default function Sidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="px-2 mt-2 space-y-1 overflow-y-auto">
+        <nav className="px-2 mt-2 space-y-1">
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (
@@ -127,7 +158,6 @@ export default function Sidebar() {
                     )}
                   </AnimatePresence>
                 </div>
-                {/* Minimal tooltip when collapsed */}
                 {collapsed && (
                   <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap rounded-md bg-black/90 text-white text-[11px] px-2 py-1 opacity-0 group-hover:opacity-100 shadow-md transition-opacity">
                     {item.label}
@@ -138,11 +168,64 @@ export default function Sidebar() {
           })}
         </nav>
 
+        {/* Chat History Section */}
+        {collapsed && (<div className="mt-6 px-2 space-y-1 overflow-y-auto">
+          {!collapsed && (
+            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Chats
+            </h3>
+          )}
+
+          {isLoading && !collapsed && (
+            <div className="px-3 space-y-2">
+              <div className="h-4 bg-gray-200 rounded-md w-3/4 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded-md w-1/2 animate-pulse"></div>
+            </div>
+          )}
+
+          {!isLoading && chats.map((chat) => {
+            const href = `/chat/${chat.id}`;
+            const active = pathname === href;
+
+            return (
+              <Link key={chat.id} href={href} className="group block relative" aria-label={chat.title} title={chat.title}>
+                <div
+                  className={[
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
+                    active
+                      ? "bg-gray-100 text-black"
+                      : "text-gray-700 hover:bg-gray-50",
+                  ].join(" ")}
+                >
+                  <span className="shrink-0">
+                    {!collapsed ? <MessageSquare size={20} className="text-gray-700" /> :null }
+                  </span>
+                  <AnimatePresence>
+                    {!collapsed && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -6 }}
+                        className="text-sm font-medium truncate"
+                      >
+                        {chat.title}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                {collapsed && (
+                  <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap rounded-md bg-black/90 text-white text-[11px] px-2 py-1 opacity-0 group-hover:opacity-100 shadow-md transition-opacity">
+                    {chat.title}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+        )}
         {/* Footer spacer */}
         <div className="mt-auto pb-4" />
       </div>
     </motion.aside>
   );
 }
-
-
