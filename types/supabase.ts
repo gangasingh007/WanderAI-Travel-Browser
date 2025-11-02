@@ -46,6 +46,52 @@ export interface Database {
           bio?: string | null
         }
       }
+      chat: {
+        Row: {
+          id: string
+          title: string
+          userId: string
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          title?: string
+          userId: string
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          userId?: string
+          createdAt?: string
+          updatedAt?: string
+        }
+      }
+      message: {
+        Row: {
+          id: string
+          content: string
+          sender: string
+          chatId: string
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          content: string
+          sender: string
+          chatId: string
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          content?: string
+          sender?: string
+          chatId?: string
+          createdAt?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

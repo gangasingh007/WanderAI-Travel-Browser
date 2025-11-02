@@ -76,18 +76,36 @@ export async function POST(request: Request) {
     }
 
     if (error) {
-      console.error("[/api/users/create] upsert error", error);
+      // Ensure we return a stable, serializable error message instead of
+      // possibly returning `{}` when fields like `message` are undefined.
+      const message =
+        typeof error?.message === "string" && error.message.trim()
+          ? error.message
+          : JSON.stringify(error) !== "{}"
+          ? JSON.stringify(error)
+          : String(error) || "Upsert failed";
+
+      console.error("[/api/users/create] upsert error", { message, code: error.code, error });
+
       return NextResponse.json(
-        { error: error.message, code: error.code },
+        { error: message, code: error?.code ?? null },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("[/api/users/create] server error", err);
+    const message =
+      typeof err?.message === "string" && err.message.trim()
+        ? err.message
+        : JSON.stringify(err) !== "{}"
+        ? JSON.stringify(err)
+        : String(err) || "Unknown server error";
+
+    console.error("[/api/users/create] server error", { message, err });
+
     return NextResponse.json(
-      { error: err?.message ?? "Unknown server error" },
+      { error: message },
       { status: 500 }
     );
   }
