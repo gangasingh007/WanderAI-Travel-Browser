@@ -1,67 +1,80 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { createClient } from "@/lib/supabase/server";
 import Groq from "groq-sdk";
+import { v4 as uuidv4 } from 'uuid';
 
-const prisma = new PrismaClient();
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
-const DUMMY_USER_ID = "2959a622-8045-4de6-b03b-f0cbb6260036"; 
-
-// -------------------------------
 
 export async function POST(request: Request) {
+  const supabase = await createClient();
   try {
+    // 1. Get the current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const body = await request.json();
     const { message, chatId } = body;
 
-    if (!DUMMY_USER_ID) {
-      throw new Error("Please set DUMMY_USER_ID in the API route");
-    }
+    let currentChatId = chatId;
 
-    let currentChat;
-    if (chatId) {
-      currentChat = await prisma.chat.findUnique({ where: { id: chatId } });
-    }
-    
-    if (!currentChat) { 
-      currentChat = await prisma.chat.create({
-        data: {
-          userId: DUMMY_USER_ID, 
+    // 2. Find or create the chat
+    if (!currentChatId) {
+      const newChatId = uuidv4();
+      const { error: chatError } = await supabase
+        .from('chat')
+        .insert({
+          id: newChatId,
+          userId: user.id, // <-- Use the real user ID
           title: "New Chat",
-        },
-      });
+          updatedAt: new Date().toISOString(),
+        } as any);
+
+      if (chatError) throw chatError;
+      currentChatId = newChatId;
     }
 
-    await prisma.message.create({
-      data: {
+    // 3. Save the User's message
+    const { error: userMessageError } = await supabase
+      .from('message')
+      .insert({
+        id: uuidv4(),
         content: message,
         sender: "user",
-        chatId: currentChat.id,
-      },
-    });
+        chatId: currentChatId,
+      } as any);
+    
+    if (userMessageError) throw userMessageError;
 
+    // 4. Get AI response
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant", 
+      model: "llama3-8b-8192", 
       messages: [
         { role: "system", content: "You are Wander AI, a helpful travel assistant." },
         { role: "user", content: message },
       ],
     });
-
     const aiResponse = completion.choices[0].message.content || "Sorry, I couldn't think of a response.";
 
-    await prisma.message.create({
-      data: {
+    // 5. Save AI message
+    const { error: aiMessageError } = await supabase
+      .from('message')
+      .insert({
+        id: uuidv4(),
         content: aiResponse,
         sender: "ai",
-        chatId: currentChat.id,
-      },
-    });
+        chatId: currentChatId,
+      } as any);
+    
+    if (aiMessageError) throw aiMessageError;
 
+    // 6. Respond
     return NextResponse.json({
       reply: aiResponse,
-      chatId: currentChat.id,
+      chatId: currentChatId,
     });
 
   } catch (error) {

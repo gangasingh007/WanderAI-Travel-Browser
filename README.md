@@ -125,6 +125,7 @@ travel-browser/
 
 - [PRD.md](./PRD.md) - Product Requirements Document
 - [PLAN.md](./PLAN.md) - Development Plan
+- [GROQSETUP.md](./GROQSETUP.md) -GROQ ai Setup Guide
 
 ## 📄 License
 

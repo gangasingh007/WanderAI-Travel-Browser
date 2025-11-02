@@ -1,27 +1,25 @@
 // /app/api/chats/route.ts
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
-// This MUST be the same ID as in the file above
-const DUMMY_USER_ID = "2959a622-8045-4de6-b03b-f0cbb6260036"; 
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
+  const supabase =await  createClient();
   try {
-    if (!DUMMY_USER_ID) {
-      throw new Error("Please set DUMMY_USER_ID in the API route");
+    // 1. Get the current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const chats = await prisma.chat.findMany({
-      where: {
-        userId: DUMMY_USER_ID,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // 2. Fetch chats for that user
+    const { data: chats, error } = await supabase
+      .from('chat')
+      .select('*')
+      .eq('userId', user.id) // <-- Use the real user ID
+      .order('createdAt', { ascending: false });
+
+    if (error) throw error;
 
     return NextResponse.json(chats);
 
