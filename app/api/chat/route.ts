@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (!currentChatId) {
       const newChatId = uuidv4();
       const { error: chatError } = await supabase
-        .from('chat')
+        .from('Chat')
         .insert({
           id: newChatId,
           userId: user.id, // <-- Use the real user ID
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     // 3. Save the User's message
     const { error: userMessageError } = await supabase
-      .from('message')
+      .from('Message')
       .insert({
         id: uuidv4(),
         content: message,
@@ -51,9 +51,9 @@ export async function POST(request: Request) {
 
     // 4. Get AI response
     const completion = await groq.chat.completions.create({
-      model: "llama3-8b-8192", 
+      model: "llama-3.1-8b-instant", 
       messages: [
-        { role: "system", content: "You are Wander AI, a helpful travel assistant." },
+        { role: "system", content: "You are Wander AI, a helpful travel assistant and for every query you have to answer in detail with proper tabular comparisons and Detials" },
         { role: "user", content: message },
       ],
     });
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     // 5. Save AI message
     const { error: aiMessageError } = await supabase
-      .from('message')
+      .from('Message')
       .insert({
         id: uuidv4(),
         content: aiResponse,
