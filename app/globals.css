@@ -25,6 +25,37 @@ body {
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* Default cursor behavior - text shows text cursor, buttons/links show pointer */
+body {
+  cursor: default;
+}
+
+/* Text elements show text cursor (I-beam) */
+p, h1, h2, h3, h4, h5, h6, li, td, th, label, span:not(button span):not(a span):not([role="button"] span) {
+  cursor: text;
+}
+
+/* Buttons, links, and all interactive elements show pointer cursor (hand) - overrides text cursor */
+button,
+a,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+button *,
+a *,
+[role="button"] *,
+input[type="button"] *,
+input[type="submit"] *,
+input[type="reset"] * {
+  cursor: pointer !important;
+}
+
+/* Carousel specific - ensure controls are always pointer */
+[aria-roledescription="carousel"] button {
+  cursor: pointer !important;
+}
+
 /* Custom scrollbar for webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
@@ -41,4 +72,169 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* Disable text selection but allow text cursor */
+.no-select-text, .no-select-text * {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+/* Text elements should show text cursor when not inside buttons/links */
+.no-select-text h1,
+.no-select-text h2,
+.no-select-text h3,
+.no-select-text h4,
+.no-select-text h5,
+.no-select-text h6,
+.no-select-text p,
+.no-select-text span:not(button *):not(a *):not([role="button"] *),
+.no-select-text li,
+.no-select-text small,
+.no-select-text label {
+  cursor: text;
+}
+.logo-text {
+  color: transparent;
+  background-image: radial-gradient(40px 40px at var(--mx, -100px) var(--my, -100px), rgba(255,255,255,0.95), rgba(255,255,255,0) 60%),
+                    linear-gradient(0deg, rgba(255,255,255,0.72), rgba(255,255,255,0.72));
+  -webkit-background-clip: text;
+  background-clip: text;
+  transition: background-position 60ms linear, background-image 120ms ease;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+.liquid-text {
+  color: #fde68a;
+  background-image: linear-gradient(90deg, #fde68a 0%, rgba(255,255,255,0.98) 30%, #fde68a 60%, rgba(255,255,255,0.98) 90%, #fde68a 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  background-position: 0% 0%;
+  animation: gradientShift 8s cubic-bezier(0.22,1,0.36,1) infinite alternate;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
+}
+.liquid-text-sub {
+  color: transparent;
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(253,230,138,0.95));
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-size: 150% 100%;
+  animation: gradientShift 10s cubic-bezier(0.22,1,0.36,1) infinite alternate;
+}
+.liquid-subtle {
+  color: rgba(255,255,255,0.9);
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8), rgba(255,255,255,0.9));
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-size: 200% 100%;
+  animation: gradientShift 14s ease-in-out infinite;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 0%; }
+}
+@keyframes liquidSweep {
+  0% { --lx: 0%; }
+  50% { --lx: 100%; }
+  100% { --lx: 0%; }
+}
+/* Section ambient background: soft gradients and faint shapes */
+.section-ambient {
+  background:
+    radial-gradient(1000px 500px at 15% 20%, rgba(186,230,253,0.22), rgba(186,230,253,0)),
+    radial-gradient(900px 450px at 85% 80%, rgba(253,230,138,0.18), rgba(253,230,138,0)),
+    linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 24px);
+  background-size: 120% 120%, 120% 120%, 100% 100%, 100% 100%, 100% 100%;
+  background-position: 0% 0%, 100% 100%, 0% 0%, 0% 0%, 0% 0%;
+  background-repeat: no-repeat;
+  filter: saturate(110%);
+  animation: sectionAmbientShift 22s ease-in-out infinite alternate;
+}
+@keyframes sectionAmbientShift {
+  0% { background-position: 0% 0%, 100% 100%, 0% 0%; opacity: 0.65; }
+  50% { background-position: 15% 10%, 85% 90%, 0% 0%; opacity: 0.75; }
+  100% { background-position: 8% 18%, 92% 82%, 0% 0%; opacity: 0.7; }
+}
+.journey-ambient {
+  background:
+    radial-gradient(900px 450px at 15% 15%, rgba(186,230,253,0.22), rgba(186,230,253,0)),
+    radial-gradient(900px 450px at 85% 85%, rgba(253,230,138,0.18), rgba(253,230,138,0));
+  background-size: 120% 120%, 120% 120%;
+  background-position: 0% 0%, 100% 100%;
+  animation: journeyAmbientShift 24s ease-in-out infinite alternate;
+}
+@keyframes journeyAmbientShift {
+  0% { background-position: 0% 0%, 100% 100%; }
+  50% { background-position: 12% 8%, 92% 88%; }
+  100% { background-position: 6% 14%, 96% 82%; }
+}
+/* Infinite scroll animations for creator collage */
+@keyframes scrollLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes scrollRight {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.animate-scroll-left {
+  animation: scrollLeft 60s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+.pause-animation {
+  animation-play-state: paused !important;
+}
+.animate-scroll-right {
+  animation: scrollRight 60s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+/* Unified fluid background animation - smooth color blending */
+@keyframes bgScrollUnified {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 50%; }
+  50% { background-position: 50% 100%; }
+  75% { background-position: 0% 50%; }
+  100% { background-position: 0% 0%; }
+}
+@keyframes bgScrollUnifiedReverse {
+  0% { background-position: 100% 100%; }
+  33% { background-position: 0% 50%; }
+  66% { background-position: 50% 0%; }
+  100% { background-position: 100% 100%; }
+}
+.animate-bg-scroll-unified {
+  animation: bgScrollUnified 60s ease-in-out infinite;
+  will-change: background-position;
+}
+.animate-bg-scroll-unified-reverse {
+  animation: bgScrollUnifiedReverse 70s ease-in-out infinite;
+  will-change: background-position;
+}
+/* Fade gradient masks for collage edges - animated to match background */
+@keyframes fadeLeft {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes fadeRight {
+  0% { background-position: 100% 50%; }
+  50% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+.animate-fade-left {
+  animation: fadeLeft 60s ease-in-out infinite;
+  will-change: background-position;
+}
+.animate-fade-right {
+  animation: fadeRight 60s ease-in-out infinite;
+  will-change: background-position;
 }
