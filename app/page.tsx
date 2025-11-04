@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import React, { useState, useRef, useEffect } from "react";
 import GlassCarousel from "@/components/GlassCarousel";
 // UI-only landing page: no auth or data dependencies
@@ -494,11 +495,9 @@ export default function Home() {
               transition={hasViewed('hero') ? { duration: 0 } : { duration: 0.8, ease: "easeOut" }}
               className="text-white drop-shadow"
             >
-              <button
-                type="button"
-                aria-label="WanderAI"
+              <Link
+                href="/"
                 className="group relative inline-flex items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent overflow-hidden cursor-pointer"
-                onClick={() => {}}
                 onMouseEnter={(e) => {
                   const t = e.currentTarget as HTMLElement;
                   const text = t.querySelector(".logo-text") as HTMLElement | null;
@@ -531,8 +530,8 @@ export default function Home() {
               >
                 <h1 className="relative z-10 text-2xl font-semibold tracking-tight cursor-pointer select-none">
                   <span className="logo-text">Wander</span><span className="logo-text">AI</span>
-              </h1>
-              </button>
+                </h1>
+              </Link>
             </motion.div>
 
             {/* Auth Buttons */}
@@ -819,7 +818,7 @@ export default function Home() {
         <div className="relative z-10 max-w-7xl mx-auto">
           <div className="mb-8 md:mb-12 text-center">
             <h2 className="text-3xl md:text-5xl font-semibold text-black/90">Explore India, one scroll at a time</h2>
-            <p className="mt-3 text-black/60">A liquid-glass carousel of landscapes — smooth, premium, and fluid.</p>
+            <p className="mt-3 text-black/60 text-lg md:text-xl font-medium">Discover breathtaking destinations, curated by travelers, for travelers. Your next adventure starts here.</p>
           </div>
 
           <div className="mb-8">

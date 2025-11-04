@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentUser, signOut } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -265,11 +265,6 @@ export default function ExplorePage() {
     })();
   }, [router]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/");
-  };
-
   // Filter itineraries based on category and search
   const filteredItineraries = mockItineraries.filter((card) => {
     const matchesCategory =
@@ -306,33 +301,9 @@ export default function ExplorePage() {
       <main className="flex-1 px-6 md:px-12 py-8 overflow-y-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-semibold text-black/90 mb-2">Explore</h1>
-              <p className="text-black/60">Discover amazing travel itineraries from creators worldwide</p>
-            </div>
-            <div className="flex items-center gap-4">
-              {user ? (
-                <>
-                  <span className="text-sm text-black font-medium">
-                    {user?.user_metadata?.full_name || user?.email}
-                  </span>
-                  <button
-                    onClick={handleSignOut}
-                    className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  Sign In
-                </Link>
-              )}
-            </div>
+          <div className="mb-6">
+            <h1 className="text-4xl md:text-5xl font-semibold text-black/90 mb-2">Explore</h1>
+            <p className="text-black/60">Discover amazing travel itineraries from creators worldwide</p>
           </div>
 
           {/* Search Bar */}
