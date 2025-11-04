@@ -1,7 +1,7 @@
 // /components/sidebar/Sidebar.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, type ReactNode, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,7 +10,7 @@ import { MessageSquare } from "lucide-react";
 type NavItem = {
   label: string;
   href: string;
-  icon: JSX.Element;
+  icon: ReactNode;
 };
 
 const Icon = ({ path }: { path: string }) => (
@@ -36,8 +36,8 @@ const navItems: NavItem[] = [
     icon: <Icon path="M21 15a4 4 0 0 1-4 4H8l-5 5V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />,
   },
   {
-    label: "Map",
-    href: "/map",
+    label: "Itineraries",
+    href: "/itineraries",
     icon: <Icon path="M3 6l7-3 7 3 4-2v14l-4 2-7-3-7 3V4z" />,
   },
   {
@@ -97,25 +97,31 @@ export default function Sidebar() {
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 76 : 260 }}
+      layout
+      animate={{ width: collapsed ? 76 : 240 }}
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
       className="h-screen border-r border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-30"
     >
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-black" />
-            <AnimatePresence>
+        <div className="flex items-center justify-between px-4 py-4 h-[72px]">
+          <div className="flex-1 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/Logo.svg" alt="Wander AI" className="h-8 w-8 shrink-0" />
+            <AnimatePresence initial={false}>
               {!collapsed && (
-                <motion.span
-                  initial={{ opacity: 0, x: -8 }}
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  className="text-sm font-semibold tracking-tight text-gray-800"
+                  exit={{ opacity: 0, x: -6 }}
+                  className="leading-tight"
                 >
-                  Wander<span className="text-gray-600">AI</span>
-                </motion.span>
+                  <div className="text-xl font-semibold tracking-tight text-gray-900">
+                    Wander<span className="text-gray-600">AI</span>
+                  </div>
+                  <div className="text-[11px] text-gray-500">Travel. Smarter. Together.</div>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
@@ -133,7 +139,7 @@ export default function Sidebar() {
         {/* Nav */}
         <nav className="px-2 mt-2 space-y-1">
           {navItems.map((item) => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link key={item.href} href={item.href} className="group block relative" aria-label={item.label} title={item.label}>
                 <div

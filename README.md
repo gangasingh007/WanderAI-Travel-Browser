@@ -85,34 +85,135 @@ npm run db:migrate
 travel-browser/
 ├── app/
 │   ├── api/
-│   │   └── users/create/route.ts      # Server upsert to public.users
+│   │   ├── chat/
+│   │   │   └── route.ts               # Chat API endpoint
+│   │   ├── chats/
+│   │   │   ├── [chatId]/
+│   │   │   │   └── route.ts           # Individual chat API
+│   │   │   └── route.ts               # Chats list API
+│   │   ├── itineraries/
+│   │   │   └── create/
+│   │   │       └── route.ts           # Create itinerary API
+│   │   ├── olamaps/
+│   │   │   └── directions/            # OLA Maps directions API
+│   │   └── users/
+│   │       └── create/
+│   │           └── route.ts           # Server upsert to public.users
 │   ├── auth/
-│   │   └── callback/route.ts          # OAuth callback handler
-│   ├── chat/page.tsx                  # Main app (with sidebar)
-│   ├── map/page.tsx                   # Map view placeholder (with sidebar)
-│   ├── explore/page.tsx               # Explore placeholder (with sidebar)
-│   ├── following/page.tsx             # Following placeholder (with sidebar)
-│   ├── marketplace/page.tsx           # Marketplace placeholder (with sidebar)
-│   ├── profile/page.tsx               # Profile placeholder (with sidebar)
-│   ├── login/page.tsx                 # Login
-│   ├── signup/page.tsx                # Signup
+│   │   └── callback/
+│   │       └── route.ts               # OAuth callback handler
+│   ├── chat/
+│   │   ├── [chatId]/
+│   │   │   └── page.tsx               # Individual chat page
+│   │   └── page.tsx                   # Main chat page (with sidebar)
+│   ├── explore/
+│   │   └── page.tsx                   # Explore placeholder (with sidebar)
+│   ├── following/
+│   │   └── page.tsx                   # Following placeholder (with sidebar)
+│   ├── itineraries/
+│   │   ├── add-itineraries/
+│   │   │   ├── ai/
+│   │   │   │   └── page.tsx           # AI-powered itinerary creation
+│   │   │   └── manual/
+│   │   │       └── page.tsx           # Manual itinerary creation
+│   │   └── page.tsx                   # Itineraries list page
+│   ├── map/
+│   │   └── page.tsx                   # Map view placeholder (with sidebar)
+│   ├── marketplace/
+│   │   └── page.tsx                   # Marketplace placeholder (with sidebar)
+│   ├── profile/
+│   │   └── page.tsx                   # Profile placeholder (with sidebar)
+│   ├── login/
+│   │   └── page.tsx                   # Login
+│   ├── signup/
+│   │   └── page.tsx                   # Signup
+│   ├── globals.css                    # Global styles
+│   ├── favicon.ico                    # Favicon
+│   ├── icon.svg                       # App icon
 │   ├── page.tsx                       # Landing
 │   └── layout.tsx                     # Root layout
 ├── components/
-│   └── sidebar/Sidebar.tsx            # Collapsible sidebar
+│   ├── chat/
+│   │   ├── ChatBubble.tsx             # Chat message bubble component
+│   │   ├── ChatIndicator.tsx          # Chat indicator component
+│   │   └── ItenaryMenu.tsx            # Itinerary menu component
+│   ├── map/
+│   │   ├── MapCanvas.tsx              # Main map canvas component
+│   │   ├── MapSearchBar.tsx           # Map search bar component
+│   │   ├── MarkerPalette.tsx          # Marker palette component
+│   │   └── SampleItineraries.tsx      # Sample itineraries component
+│   ├── sidebar/
+│   │   └── Sidebar.tsx                # Collapsible sidebar
+│   └── GlassCarousel.tsx              # Glass carousel component
 ├── lib/
 │   ├── prisma.ts                      # Prisma client singleton
 │   ├── auth.ts                        # Auth helpers
 │   └── supabase/
 │       ├── client.ts                  # Browser Supabase client
 │       └── server.ts                  # Server Supabase client
+├── types/
+│   └── supabase.ts                    # Supabase TypeScript types
+├── scripts/
+│   └── test-itinerary-creation.ts     # Test script for itinerary creation
 ├── prisma/
 │   └── schema.prisma                  # Database schema
+├── public/
+│   ├── icons/
+│   │   └── flaticon/                  # Flaticon icons in SVG format
+│   ├── CoverPhoto.png                 # Cover photo
+│   ├── Logo.svg                       # Logo
+│   ├── LogoWander.svg                 # Wander logo
+│   ├── Plane.png                      # Plane image
+│   ├── Verified.svg                   # Verified icon
+│   └── [other assets]                 # Other public assets
+├── AUTH_SETUP.md                      # Authentication setup guide
+├── GROQSETUP.md                       # GROQ AI setup guide
+├── MAP_PLAN.md                        # Map implementation plan
 ├── PLAN.md                            # Development plan
 ├── PRD.md                             # Product requirements document
 ├── SUPABASE_SETUP.md                  # Supabase setup guide
+├── TEST_ITINERARY_CREATION.md         # Itinerary creation testing guide
 └── README.md
 ```
+
+## 🗺️ Map Implementation Steps (MVP)
+
+1) Prepare environment
+   - Create `.env.local`: add `NEXT_PUBLIC_MAPBOX_TOKEN` and `GOOGLE_MAPS_API_KEY`
+   - Do NOT expose Google key on client; use server routes for Places API
+
+2) Install map dependencies
+```bash
+npm install mapbox-gl
+```
+
+3) Initialize map
+   - In `components/map/MapCanvas.tsx` (already scaffolded), dynamically import `mapbox-gl` in `useEffect`
+   - Set style `mapbox://styles/mapbox/light-v11`, enable subtle 3D buildings
+
+4) Marker palette → drag & drop
+   - `components/map/MarkerPalette.tsx` emits drag payload `{ id, type }`
+   - Handle `dragover`/`drop` in `MapCanvas` to convert screen → `lngLat`
+   - Create a new marker object and persist
+
+5) Persist markers (server)
+   - Add CRUD API routes for `itinerary_pins` (create/update/delete/list)
+   - Use `type`, `icon`, `google_place_id`, `meta_json`, `order_index`
+
+6) Sidebar details
+   - On marker click: open right sidebar (reuse existing top-level layout)
+   - Sections: Details, Reviews, FAQs, Creator Notes
+
+7) Google Places integration (server)
+   - Create `/api/places/details?placeId=...` that calls Google Places
+   - Cache in `public.place_cache` by `place_id` (TTL-based reuse)
+
+8) Marketplace hook
+   - For hotel markers, render CTA to `/marketplace` with query params
+
+9) Performance & polish
+   - Cluster at low zoom levels, lazy fetch place details, debounced saves
+
 
 ## 🎨 Design Philosophy
 
@@ -125,7 +226,11 @@ travel-browser/
 
 - [PRD.md](./PRD.md) - Product Requirements Document
 - [PLAN.md](./PLAN.md) - Development Plan
-- [GROQSETUP.md](./GROQSETUP.md) -GROQ ai Setup Guide
+- [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) - Supabase setup guide
+- [AUTH_SETUP.md](./AUTH_SETUP.md) - Authentication setup guide
+- [GROQSETUP.md](./GROQSETUP.md) - GROQ AI setup guide
+- [MAP_PLAN.md](./MAP_PLAN.md) - Map implementation plan
+- [TEST_ITINERARY_CREATION.md](./TEST_ITINERARY_CREATION.md) - Itinerary creation testing guide
 
 ## 📄 License
 

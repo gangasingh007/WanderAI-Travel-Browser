@@ -13,24 +13,135 @@ generator client {
 // This model matches your 'types/supabase.ts'
 // ----------------------------------------------
 model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  username   String?
-  full_name  String?
-  avatar_url String?
-  user_type  UserType @default(TRAVELER)
-  bio        String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id                String         @id @default(uuid())
+  email             String         @unique
+  username          String?        @unique
+  full_name         String?
+  avatar_url        String?
+  user_type         UserType       @default(TRAVELER) // CREATOR or TRAVELER
+  bio               String?
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
 
-  // --- Relation to new Chat model ---
-  chats Chat[]
+  // Relations
+  itineraries       Itinerary[]
+  itinerary_pins    ItineraryPin[]
+  saved_itineraries SavedItinerary[]
+  follows           Follow[]       @relation("UserFollows")
+  followers         Follow[]        @relation("UserFollowers")
+  chats             Chat[]
 
-  @@map("users") // Maps to your 'public.users' table
+  @@map("users")
+}
+
+enum UserType {
+  TRAVELER
+  CREATOR
+}
+
+// Itinerary Model
+model Itinerary {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  created_by  String
+  is_public   Boolean        @default(false)
+  thumbnail   String?
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  // Relations
+  user        User           @relation(fields: [created_by], references: [id], onDelete: Cascade)
+  pins        ItineraryPin[]
+
+  @@index([created_by])
+  @@index([is_public])
+  @@map("itineraries")
+}
+
+// Itinerary Pin (locations on map)
+model ItineraryPin {
+  id               String       @id @default(uuid())
+  itinerary_id     String
+  latitude         Float
+  longitude        Float
+  title            String
+  description      String?
+  type             PinType      @default(CUSTOM)
+  icon             PinIcon      @default(PIN)
+  google_place_id  String?
+  meta_json        Json?
+  order_index      Int          @default(0)
+  day              Int?
+  date             DateTime?
+  photos           String[]     @default([])
+  videos           String[]     @default([])
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  // Relations
+  itinerary        Itinerary    @relation(fields: [itinerary_id], references: [id], onDelete: Cascade)
+  user             User         @relation(fields: [created_by], references: [id])
+  created_by       String
+
+  @@index([itinerary_id])
+  @@index([created_by])
+  @@index([google_place_id])
+  @@map("itinerary_pins")
+}
+
+enum PinType {
+  HOTEL
+  FOOD
+  ATTRACTION
+  CUSTOM
+  CAR
+  PIN
+}
+
+enum PinIcon {
+  PIN
+  CAR
+  HOTEL
+  FOOD
+  ATTRACTION
+}
+
+// Follow System (User follows)
+model Follow {
+  id          String   @id @default(uuid())
+  follower_id String   // Who is following
+  following_id String // Who is being followed
+  created_at  DateTime @default(now())
+
+  // Relations
+  follower    User     @relation("UserFollows", fields: [follower_id], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@unique([follower_id, following_id])
+  @@index([follower_id])
+  @@index([following_id])
+  @@map("follows")
+}
+
+// Saved Itineraries (User bookmarks)
+model SavedItinerary {
+  id           String    @id @default(uuid())
+  user_id      String
+  itinerary_id String
+  created_at   DateTime  @default(now())
+
+  // Relations
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  // Note: Itinerary relation would go here if needed
+
+  @@unique([user_id, itinerary_id])
+  @@index([user_id])
+  @@map("saved_itineraries")
 }
 
 // ----------------------------------------------
-// NEW MODELS TO ADD
+// Chat Models
 // ----------------------------------------------
 
 // A Chat session, which belongs to a User
@@ -58,12 +169,11 @@ model Message {
   // Relation to Chat
   chatId String
   chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
 }
 
-// ----------------------------------------------
-// This enum matches your 'types/supabase.ts'
-// ----------------------------------------------
-enum UserType {
-  TRAVELER
-  CREATOR
+enum MessageRole {
+  USER
+  ASSISTANT
 }

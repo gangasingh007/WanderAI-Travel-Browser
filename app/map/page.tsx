@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Sidebar from "@/components/sidebar/Sidebar";
+import MapCanvas from "@/components/map/MapCanvas";
+import MarkerPalette from "@/components/map/MarkerPalette";
 
 export default function MapPage() {
   const [user, setUser] = useState<any>(null);
@@ -51,7 +53,7 @@ export default function MapPage() {
               Wander<span className="text-gray-600">AI</span>
             </h1>
           </Link>
-        
+
           <div className="flex items-center gap-4">
             <span className="text-sm text-black font-medium">
               {user?.user_metadata?.full_name || user?.email}
@@ -65,14 +67,18 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* Map Placeholder */}
+        {/* Marker Palette */}
+        <div className="mb-4">
+          <MarkerPalette />
+        </div>
+
+        {/* Map */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="rounded-2xl border border-gray-200 bg-gray-50 h-[70vh] flex items-center justify-center text-gray-600"
         >
-          Map view coming soon
+          <MapCanvas enableEditing />
         </motion.div>
       </main>
     </div>
