@@ -19,8 +19,8 @@ export async function GET(
 
     // 2. Fetch the chat and its messages
     const { data: chat, error } = await supabase
-      .from('chat')
-      .select('*, message(*)')
+      .from('Chat')
+      .select('*, Message(*)')
       .eq('id', chatId)
       .single();
 
@@ -36,7 +36,8 @@ export async function GET(
     }
 
     // 4. Sort messages and return
-    const sortedMessages = (chatData.message || []).sort(
+    // Supabase returns the relationship as 'Message' (capitalized) when selecting Message(*)
+    const sortedMessages = ((chatData.Message || chatData.message) || []).sort(
       (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 import { signUp } from "@/lib/auth";
@@ -16,6 +16,10 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+
+  const handleUserTypeChange = (type: "traveler" | "creator") => {
+    setUserType(type);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,19 +60,24 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
+    <div className="min-h-screen bg-white flex">
+      {/* Left: Signup Form */}
+      <div className="w-full md:w-1/2 flex items-center justify-center px-4 py-12 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-semibold tracking-tight text-black">
-              Wander<span className="text-gray-600">AI</span>
-            </h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Blue%20and%20White%20Abstract%20Travel%20Logo%20(4).png"
+              alt="WanderAI Logo"
+              className="mx-auto h-44 sm:h-60 w-auto"
+            />
           </Link>
           <p className="text-gray-600 mt-2">Create your account</p>
         </div>
@@ -137,7 +146,7 @@ export default function SignupPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setUserType("traveler")}
+                  onClick={() => handleUserTypeChange("traveler")}
                   className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
                     userType === "traveler"
                       ? "border-black bg-black text-white"
@@ -151,7 +160,7 @@ export default function SignupPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setUserType("creator")}
+                  onClick={() => handleUserTypeChange("creator")}
                   className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
                     userType === "creator"
                       ? "border-black bg-black text-white"
@@ -279,7 +288,7 @@ export default function SignupPage() {
         </div>
 
         {/* Login Link */}
-        <p className="text-center mt-6 text-sm text-gray-600">
+        <p className="text-center mt-6 mb-4 text-sm text-gray-600">
           Already have an account?{" "}
           <Link
             href="/login"
@@ -289,6 +298,52 @@ export default function SignupPage() {
           </Link>
         </p>
       </motion.div>
+      </div>
+
+      {/* Right: Video */}
+      <div className="hidden md:block md:sticky md:top-0 md:h-screen md:w-1/2 relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          {userType === "traveler" ? (
+            <motion.div
+              key="traveler"
+              initial={{ opacity: 0, filter: "blur(10px)" }}
+              animate={{ opacity: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, filter: "blur(10px)" }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+              className="absolute inset-0 w-full h-full"
+            >
+              <video
+                className="absolute inset-0 w-full h-full object-cover"
+                src="/Travller.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="creator"
+              initial={{ opacity: 0, filter: "blur(10px)" }}
+              animate={{ opacity: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, filter: "blur(10px)" }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+              className="absolute inset-0 w-full h-full"
+            >
+              <video
+                className="absolute inset-0 w-full h-full object-cover"
+                src="/Creator.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
