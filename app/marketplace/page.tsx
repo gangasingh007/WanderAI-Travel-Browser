@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/sidebar/Sidebar";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type Suggestion = {
@@ -238,6 +239,34 @@ export default function MarketplacePage() {
     <div className="min-h-screen bg-white flex">
       <Sidebar />
       <main className="flex-1 px-8 py-6 overflow-x-hidden">
+        {/* Hero Section with background video */}
+        <section className="relative w-full h-screen overflow-hidden mb-8">
+          <video
+            className="absolute top-0 left-0 w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+          >
+            <source src="/introm.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          <div className="absolute inset-0 bg-black/30"></div>
+          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-4">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">Discover. Connect. Wander.</h1>
+            <p className="text-lg md:text-xl mb-6 max-w-2xl">
+              Find the best stays, experiences, and rides with AI-powered recommendations.
+            </p>
+            <button
+              onClick={() => {
+                window.scrollTo({ top: window.innerHeight, behavior: "smooth" });
+              }}
+              className="px-6 py-3 bg-white text-black rounded-full font-medium hover:bg-gray-200 transition"
+            >
+              Explore Marketplace
+            </button>
+          </div>
+        </section>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-black">Marketplace</h1>
         </div>
@@ -307,32 +336,65 @@ export default function MarketplacePage() {
             <div ref={featuredScrollRef} className="w-full overflow-x-auto scroll-smooth scrollbar-hide no-scrollbar px-4">
               <div className="flex gap-4">
               {featured.map((f, idx) => (
-                <motion.div key={`${f.id}-${idx}`} whileHover={{ y: -4, scale: 1.01 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="min-w-[250px] rounded-xl border border-gray-200 bg-white flex-shrink-0">
-                  {/* image (fallback to contextual random if missing) */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={(f.image_url && typeof f.image_url === "string" && f.image_url.length > 5)
-                      ? f.image_url
-                      : `https://source.unsplash.com/800x400/?hotel,resort,stay&sig=${idx}`}
-                    alt={f.name}
-                    className="w-full h-40 object-cover rounded-xl"
-                    loading="lazy"
-                  />
-                  
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="text-lg font-semibold text-gray-900 truncate mr-2">{f.name}</div>
-                      {typeof f.price === "number" ? (
-                        <div className="text-xs font-medium text-gray-700">₹{Math.round(f.price)}</div>
-                      ) : null}
-                    </div>
-                    <div className="text-sm text-gray-600 mt-1">{f.location ?? "Unknown"}</div>
-                    <div className="flex items-center gap-2 mt-2">
-                      {typeof f.rating === "number" ? (<span className="text-xs bg-gray-100 px-2 py-1 rounded-md">⭐ {f.rating.toFixed(1)}</span>) : null}
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button className="text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-black">View Details</button>
-                      <button className="text-xs px-3 py-2 rounded-lg bg-black text-white hover:bg-black/90">Book Now</button>
+                <motion.div key={`${f.id}-${idx}`} whileHover={{ y: -6, scale: 1.01 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="min-w-[260px] flex-shrink-0">
+                  <div className="rounded-2xl p-[1px] bg-gradient-to-b from-zinc-200 via-zinc-100 to-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)]">
+                    <div className="rounded-2xl bg-white/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md">
+                      <div className="relative overflow-hidden rounded-t-2xl group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={(f.image_url && typeof f.image_url === "string" && f.image_url.length > 5)
+                            ? f.image_url
+                            : `https://source.unsplash.com/800x400/?hotel,resort,stay&sig=${idx}`}
+                          alt={f.name}
+                          className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+                        <div className="absolute top-3 right-3">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold text-gray-900 bg-white ring-1 ring-gray-200 shadow-sm">
+                            <span className="inline-block h-3 w-3 rounded-full bg-yellow-500/90 shadow-[0_0_0_2px_rgba(255,255,255,0.8)]" />
+                            2000 Coins
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-[15px] font-semibold text-gray-900 truncate">{f.name}</div>
+                            <div className="mt-1 text-xs text-gray-500 truncate">{f.location ?? "Unknown"}</div>
+                          </div>
+                          {typeof f.rating === "number" ? (
+                            <span className="text-[11px] px-2 py-1 rounded-md bg-gray-100 text-gray-800">⭐ {f.rating.toFixed(1)}</span>
+                          ) : null}
+                        </div>
+
+                        {typeof f.price === "number" ? (
+                          <div className="mt-3">
+                            {(() => {
+                              const original = Math.round(f.price as number);
+                              const minus = 200; // 2000 coins => ₹200 off
+                              let discounted = Math.max(original - minus, 0);
+                              discounted = Math.floor(discounted / 10) * 10 - 1; // pretty price e.g., 4000 -> 3999
+                              if (discounted < 0) discounted = 0;
+                              return (
+                                <div className="flex items-end justify-between">
+                                  <div className="text-[11px] text-gray-500">By using 2000 Coins</div>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-[15px] font-bold text-gray-900">₹{discounted}</span>
+                                    <span className="text-xs text-gray-400 line-through">₹{original}</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <Link href={`/marketplace/stay/${f.id}`} className="text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-black">View Details</Link>
+                          <button className="text-xs px-3 py-2 rounded-lg bg-black text-white hover:bg-black/90">Book Now</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

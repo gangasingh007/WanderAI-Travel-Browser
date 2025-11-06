@@ -36,21 +36,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
+    <div className="min-h-screen bg-white flex">
+      {/* Left: Video */}
+      <div className="hidden md:block md:sticky md:top-0 md:h-screen md:w-1/2 relative overflow-hidden">
+        {/* Background video */}
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          src="/train.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      </div>
+
+      {/* Right: Login Form */}
+      <div className="w-full md:w-1/2 flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-semibold tracking-tight text-black">
-              Wander<span className="text-gray-600">AI</span>
-            </h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Blue%20and%20White%20Abstract%20Travel%20Logo%20(4).png"
+              alt="WanderAI Logo"
+              className="mx-auto h-44 sm:h-60 w-auto"
+            />
           </Link>
-          <p className="text-gray-600 mt-2">Welcome back</p>
+          <p className="text-gray-600 mt-0">Welcome back</p>
         </div>
 
         {/* Login Form */}
@@ -179,7 +197,7 @@ export default function LoginPage() {
         </div>
 
         {/* Sign Up Link */}
-        <p className="text-center mt-6 text-sm text-gray-600">
+        <p className="text-center mt-6 mb-4 text-sm text-gray-600">
           Don't have an account?{" "}
           <Link
             href="/signup"
@@ -188,7 +206,8 @@ export default function LoginPage() {
             Sign up
           </Link>
         </p>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

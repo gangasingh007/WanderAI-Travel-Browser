@@ -46,6 +46,7 @@ export default function ProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
@@ -82,6 +83,7 @@ export default function ProfilePage() {
         router.push("/login");
       } else {
         setUser(currentUser);
+        setAvatarError(false); // Reset error state when user changes
         setLoading(false);
       }
     })();
@@ -178,10 +180,22 @@ export default function ProfilePage() {
         img.src = publicUrl;
       });
 
+      // Update both Auth metadata and users table
       const { error: updErr } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl },
       });
       if (updErr) throw new Error(`Auth metadata update failed: ${updErr.message}`);
+
+      // Also update the users table
+      const { error: dbErr } = await (supabase
+        .from('users') as any)
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+      
+      if (dbErr) {
+        console.warn("[profile.avatar.upload] Failed to update users table:", dbErr);
+        // Don't throw - auth update succeeded, this is just a sync issue
+      }
 
       // Optimistically update local user object
       setUser((prev: any) => ({
@@ -233,9 +247,38 @@ export default function ProfilePage() {
           <div className="flex items-start gap-5 flex-1 min-w-0">
             {/* Avatar left, larger to match info height visually */}
             <div className="group relative w-40 h-40 sm:w-48 sm:h-48 lg:w-52 lg:h-52 -mt-16 sm:-mt-20 rounded-2xl ring-4 ring-white overflow-hidden bg-gray-100 flex items-center justify-center text-3xl sm:text-4xl font-semibold text-gray-700 shadow-sm shrink-0 relative z-10">
-              {user?.user_metadata?.avatar_url ? (
+              {user?.user_metadata?.avatar_url && !avatarError ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.user_metadata.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                <img 
+                  src={user.user_metadata.avatar_url} 
+                  alt={displayName} 
+                  className="w-full h-full object-cover"
+                  onError={async () => {
+                    // Image failed to load - clear it from database
+                    setAvatarError(true);
+                    const supabase = createSbClient();
+                    try {
+                      // Clear from auth metadata
+                      await supabase.auth.updateUser({
+                        data: { avatar_url: null },
+                      });
+                      // Clear from users table
+                      await (supabase.from('users') as any)
+                        .update({ avatar_url: null })
+                        .eq('id', user.id);
+                      // Update local state
+                      setUser((prev: any) => ({
+                        ...prev,
+                        user_metadata: {
+                          ...prev?.user_metadata,
+                          avatar_url: null,
+                        },
+                      }));
+                    } catch (error) {
+                      console.error('Failed to clear avatar URL:', error);
+                    }
+                  }}
+                />
               ) : (
                 <span>{initials}</span>
               )}
