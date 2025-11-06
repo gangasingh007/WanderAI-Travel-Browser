@@ -1,50 +1,81 @@
-// /app/api/chats/[chatId]/route.ts
-
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+type ChatData = {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export async function GET(
   request: Request,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> } // Mark params as Promise
 ) {
   const supabase = await createClient();
   try {
-    const chatId = params.chatId;
+    // AWAIT params before accessing chatId
+    const { chatId } = await params;
+    
 
-    // 1. Get the current user
+    // Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.error('❌ Auth error:', authError);
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    
 
-    // 2. Fetch the chat and its messages
-    const { data: chat, error } = await supabase
+    // First, verify the chat exists and belongs to the user
+    const { data: chat, error: chatError } = await supabase
       .from('Chat')
-      .select('*, Message(*)')
+      .select('id, userId, title, createdAt, updatedAt')
       .eq('id', chatId)
       .single();
 
-    if (error) throw error;
+
+    if (chatError) {
+      console.error('❌ Chat error:', chatError);
+      
+      // Provide more specific error messages
+      if (chatError.code === 'PGRST116') {
+        return new NextResponse("Chat not found", { status: 404 });
+      }
+      
+      throw chatError;
+    }
+
     if (!chat) {
+      console.warn('⚠️ No chat found for ID:', chatId);
       return new NextResponse("Chat not found", { status: 404 });
     }
 
-    // 3. SECURITY CHECK: Ensure the logged-in user owns this chat
-    const chatData = chat as any;
+    const chatData = chat as ChatData;
+
+    // Security check: Ensure the logged-in user owns this chat
     if (chatData.userId !== user.id) {
+      console.warn('🚫 Forbidden: User', user.id, 'tried to access chat owned by', chatData.userId);
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    // 4. Sort messages and return
-    // Supabase returns the relationship as 'Message' (capitalized) when selecting Message(*)
-    const sortedMessages = ((chatData.Message || chatData.message) || []).sort(
-      (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+    // Fetch messages separately with explicit ordering
+    const { data: messages, error: messagesError } = await supabase
+      .from('Message')
+      .select('*')
+      .eq('chatId', chatId)
+      .order('createdAt', { ascending: true });
 
-    return NextResponse.json(sortedMessages);
+
+    if (messagesError) {
+      console.error('❌ Messages error:', messagesError);
+      throw messagesError;
+    }
+
+    return NextResponse.json(messages || []);
 
   } catch (error) {
-    console.error("Error fetching chat:", error);
+    console.error('💥 Error fetching chat:', error);
     return new NextResponse("An error occurred fetching chat.", { status: 500 });
   }
 }

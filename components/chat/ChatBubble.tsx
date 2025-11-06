@@ -47,7 +47,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
       const textLength = sanitizedText.length;
       
       // Adjust speed: smaller = faster (milliseconds per character)
-      const typingSpeed = 2;
+      const typingSpeed = 1;
       
       const intervalId = setInterval(() => {
         if (currentIndex <= textLength) {
@@ -98,7 +98,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
           transition={{ duration: 0.2 }}
           className={`group relative ${
             isUser
-              ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+              ? "bg-blue-400 text-white shadow-lg shadow-blue-500/20"
               : "bg-white text-gray-900 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
           } rounded-2xl ${isUser ? "rounded-tr-md" : "rounded-tl-md"}`}
         >
@@ -359,7 +359,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
-          className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center shrink-0 shadow-md"
+          className="w-9 h-9 rounded-full bg-blue-400 flex items-center justify-center shrink-0 shadow-md"
         >
           <User size={18} className="text-white" strokeWidth={2.5} />
         </motion.div>

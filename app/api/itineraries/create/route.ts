@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     }
 
     // Create itinerary with pins in a transaction
+    // @ts-ignore
     const result = await prisma.$transaction(async (tx) => {
       // Create itinerary
       const itinerary = await tx.itinerary.create({
@@ -132,4 +133,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
