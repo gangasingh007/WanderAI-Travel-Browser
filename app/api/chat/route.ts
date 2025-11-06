@@ -20,16 +20,45 @@ export async function POST(request: Request) {
     const { message, chatId } = body;
 
     let currentChatId = chatId;
+    let isNewChat = false;
 
     // 2. Find or create the chat
     if (!currentChatId) {
+      isNewChat = true;
       const newChatId = uuidv4();
+      
+      // Generate a dynamic title from the first message using AI
+      let chatTitle = "New Chat";
+      try {
+        const titleCompletion = await groq.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            { 
+              role: "system", 
+              content: "Generate a concise, 3-5 word title that captures the essence of the user's message. Do not use quotation marks. Only respond with the title, nothing else." 
+            },
+            { role: "user", content: message },
+          ],
+          max_tokens: 20,
+          temperature: 0.7,
+        });
+        
+        const generatedTitle = titleCompletion.choices[0].message.content?.trim();
+        if (generatedTitle && generatedTitle.length > 0) {
+          chatTitle = generatedTitle.replace(/['"]/g, ''); // Remove any quotes
+        }
+      } catch (titleError) {
+        console.error("Error generating title:", titleError);
+        // Fallback: use first 50 characters of the message
+        chatTitle = message.length > 50 ? message.substring(0, 47) + "..." : message;
+      }
+
       const { error: chatError } = await supabase
         .from('Chat')
         .insert({
           id: newChatId,
-          userId: user.id, // <-- Use the real user ID
-          title: "New Chat",
+          userId: user.id,
+          title: chatTitle,
           updatedAt: new Date().toISOString(),
         } as any);
 
@@ -37,7 +66,46 @@ export async function POST(request: Request) {
       currentChatId = newChatId;
     }
 
-    // 3. Save the User's message
+    // 3. Fetch conversation history (last 10 messages for context)
+    const { data: previousMessages, error: historyError } = await supabase
+      .from('Message')
+      .select('content, sender, createdAt')
+      .eq('chatId', currentChatId)
+      .order('createdAt', { ascending: true })
+      .limit(10);
+
+    if (historyError) {
+      console.error("Error fetching chat history:", historyError);
+    }
+
+    // 4. Build conversation history for AI
+    const conversationHistory = [];
+    
+    // Add system message
+    conversationHistory.push({
+      role: "system",
+      content: "You are Wander AI, a helpful travel assistant. For every query you have to answer in detail with proper tabular comparisons and details. Maintain context from previous messages in the conversation."
+    });
+
+    // Add previous messages as context (if any)
+    if (previousMessages && previousMessages.length > 0) {
+      previousMessages.forEach((msg: any) => {
+        conversationHistory.push({
+          role: msg.sender === "user" ? "user" : "assistant",
+          content: msg.content
+        });
+      });
+    }
+
+    // Add current user message
+    conversationHistory.push({
+      role: "user",
+      content: message
+    });
+
+    console.log('📜 Conversation history length:', conversationHistory.length - 1); // -1 for system message
+
+    // 5. Save the User's message
     const { error: userMessageError } = await supabase
       .from('Message')
       .insert({
@@ -49,17 +117,17 @@ export async function POST(request: Request) {
     
     if (userMessageError) throw userMessageError;
 
-    // 4. Get AI response
+    // 6. Get AI response with full conversation context
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant", 
-      messages: [
-        { role: "system", content: "You are Wander AI, a helpful travel assistant and for every query you have to answer in detail with proper tabular comparisons and Detials" },
-        { role: "user", content: message },
-      ],
+      messages: conversationHistory as any,
+      temperature: 0.7,
+      max_tokens: 2048,
     });
+    
     const aiResponse = completion.choices[0].message.content || "Sorry, I couldn't think of a response.";
 
-    // 5. Save AI message
+    // 7. Save AI message
     const { error: aiMessageError } = await supabase
       .from('Message')
       .insert({
@@ -71,7 +139,15 @@ export async function POST(request: Request) {
     
     if (aiMessageError) throw aiMessageError;
 
-    // 6. Respond
+    // 8. Update chat timestamp
+    
+    await supabase
+      .from('Chat')
+      // @ts-ignore
+      .update({ updatedAt: new Date().toISOString() }as any )
+      .eq('id', currentChatId);
+
+    // 9. Respond
     return NextResponse.json({
       reply: aiResponse,
       chatId: currentChatId,

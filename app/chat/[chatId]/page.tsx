@@ -41,50 +41,64 @@ export default function ChatPage() {
   const supabase = createClient(); // <-- Initialize browser client
   const chatIdFromUrl = Array.isArray(params.chatId) ? params.chatId[0] : params.chatId;
 
-  useEffect(() => {
-    const loadChat = async () => {
-      // 1. Check for logged-in user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login"); // <-- Redirect if logged out
-        return;
-      }
+useEffect(() => {
+  const loadChat = async () => {
+    
+    // 1. Check for logged-in user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('⚠️ No user found, redirecting to login');
+      router.push("/login");
+      return;
+    }
+    
 
-      // 2. User is logged in, proceed with loading logic
-      const idToLoad = (chatIdFromUrl === "new" || !chatIdFromUrl) ? null : chatIdFromUrl;
-      setChatId(idToLoad);
+    // 2. User is logged in, proceed with loading logic
+    const idToLoad = (chatIdFromUrl === "new" || !chatIdFromUrl) ? null : chatIdFromUrl;
+    
+    setChatId(idToLoad);
 
-      if (!idToLoad) {
-        setMessages([]); // Start a fresh chat
-        return;
-      }
+    if (!idToLoad) {
+      setMessages([]); // Start a fresh chat
+      return;
+    }
 
-      try {
-        const response = await fetch(`/api/chats/${idToLoad}`);
+    try {
+      const response = await fetch(`/api/chats/${idToLoad}`);
+      
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Failed to fetch chat. Status: ${response.status}, Error: ${errorText}`);
         
-        // The API will now send 401/403 errors, which .ok will catch
-        if (!response.ok) {
-          throw new Error("Failed to fetch chat history. Status: " + response.status);
+        // If 404, the chat doesn't exist - redirect to new chat
+        if (response.status === 404) {
+          router.push("/chat/new");
+          return;
         }
         
-        const fetchedMessages: FetchedMessage[] = await response.json();
-        const formattedMessages: Message[] = fetchedMessages.map(msg => ({
-          id: msg.id,
-          text: msg.content,
-          sender: msg.sender as "user" | "ai",
-        }));
-        
-        setMessages(formattedMessages);
-        
-      } catch (error) {
-        console.error(error);
-        // If chat fails (e.g., 404 Not Found, 403 Forbidden), send to new chat
-        router.push("/chat/new");
+        throw new Error("Failed to fetch chat history. Status: " + response.status);
       }
-    };
+      
+      const fetchedMessages: FetchedMessage[] = await response.json();
+      
+      const formattedMessages: Message[] = fetchedMessages.map(msg => ({
+        id: msg.id,
+        text: msg.content,
+        sender: msg.sender as "user" | "ai",
+      }));
+      
+      setMessages(formattedMessages);
+      
+    } catch (error) {
+      console.error('💥 Error in loadChat:', error);
+      // If chat fails, send to new chat
+      router.push("/chat/new");
+    }
+  };
 
-    loadChat();
-  }, [chatIdFromUrl, router, supabase.auth]);
+  loadChat();
+}, [chatIdFromUrl, router, supabase.auth]);
 
   // ... (Your handleSend function is unchanged and will work perfectly)
   const handleSend = async () => {
@@ -191,7 +205,7 @@ export default function ChatPage() {
               className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-400"
               onClick={handleSend}
               disabled={input.trim() === "" || isAiTyping}
-            >
+            >{}
               <Send size={20} />
             </button>
           </div>
@@ -203,7 +217,7 @@ export default function ChatPage() {
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="absolute right-6 bottom-24 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition-all z-50"
-        >
+        >{}
           <motion.div
             animate={{ rotate: isMenuOpen ? 45 : 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}

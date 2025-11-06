@@ -1,10 +1,10 @@
 // /app/chat/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/sidebar/Sidebar";
-import { Plus, Send, Sparkles } from "lucide-react";
+import { Plus, Send, MapPin, Calendar } from "lucide-react";
 import ChatBubble from "@/components/chat/ChatBubble";
 import { motion, AnimatePresence } from "framer-motion";
 import TypingIndicator from "@/components/chat/ChatIndicator";
@@ -16,6 +16,31 @@ export type Message = {
   sender: "user" | "ai";
 };
 
+type Itinerary = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 export default function ChatPage() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,6 +48,41 @@ export default function ChatPage() {
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const [itineraries, setItineraries] = useState<Itinerary[]>([]);
+  const [isLoadingItineraries, setIsLoadingItineraries] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch itineraries on mount
+  useEffect(() => {
+    fetchItineraries();
+  }, []);
+
+  const fetchItineraries = async () => {
+    setIsLoadingItineraries(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/itineraries?limit=4');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch itineraries: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (Array.isArray(data) && data.length > 0) {
+        setItineraries(data);
+      } else {
+        setError('No itineraries found');
+        setItineraries([]);
+      }
+    } catch (error) {
+      console.error('Error fetching itineraries:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load itineraries');
+      setItineraries([]);
+    } finally {
+      setIsLoadingItineraries(false);
+    }
+  };
 
   const handleSend = async () => {
     if (input.trim() === "") return;
@@ -132,13 +192,9 @@ export default function ChatPage() {
         >
           <Link href="/">
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-              Wander<span className="bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">AI</span>
+              Wander<span className="bg-blue-500 bg-clip-text text-transparent">AI</span>
             </h1>
           </Link>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-200">
-            <Sparkles size={14} className="text-violet-600" />
-            <span className="text-xs font-medium text-violet-700">AI Assistant</span>
-          </div>
         </motion.header>
 
         {/* Main Content Area */}
@@ -174,19 +230,11 @@ export default function ChatPage() {
                   transition: { duration: 0.5, ease: "easeInOut" }
                 }}
                 transition={{ duration: 0.5 }}
-                className="absolute inset-0 flex flex-col items-center justify-center px-4"
+                className="absolute inset-0 flex flex-col items-center justify-center px-4 pb-20 overflow-y-auto"
               >
-                <div className="w-full max-w-4xl">
+                <div className="w-full max-w-6xl">
                   {/* Welcome Section */}
                   <div className="flex flex-col items-center text-center mb-8">
-                    <motion.div 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                      className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center mb-6 shadow-2xl"
-                    >
-                      <Sparkles size={40} className="text-white" />
-                    </motion.div>
                     <motion.h2 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -210,7 +258,7 @@ export default function ChatPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="relative mb-6"
+                    className="relative mb-8"
                   >
                     <input
                       type="text"
@@ -241,14 +289,15 @@ export default function ChatPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-12"
                   >
                     {[
                       "Plan a 5-day trip from Amritsar to Manali",
                       "Best beaches in Goa",
                       "Budget travel tips for Europe",
                       "Hidden gems in North East India",
-                      "Exploring South India"
+                      "Exploring South India",
+                      "Look for the Best accomodations in Srinagar"
                     ].map((suggestion, idx) => (
                       <motion.button
                         key={idx}
@@ -265,12 +314,111 @@ export default function ChatPage() {
                     ))}
                   </motion.div>
 
+                  {/* Recommendations Section */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.2 }}
+                    className="mb-12"
+                  >
+                    <div className="flex items-center gap-2 mb-6">
+                      <MapPin size={24} className="text-violet-600" />
+                      <h3 className="text-2xl font-bold text-gray-900">Your Travel Recommendations</h3>
+                    </div>
+
+                    {isLoadingItineraries ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div key={i} className="h-64 bg-gray-200 rounded-2xl animate-pulse" />
+                        ))}
+                      </div>
+                    ) : error ? (
+                      <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-200">
+                        <p className="text-red-600 font-semibold mb-2">Unable to load itineraries</p>
+                        <p className="text-red-500 text-sm mb-4">{error}</p>
+                        <button
+                          onClick={fetchItineraries}
+                          className="px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    ) : itineraries.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-200">
+                        <MapPin size={48} className="text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 font-semibold mb-2">No itineraries yet</p>
+                        <p className="text-gray-500 text-sm">Create your first itinerary to get started</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {itineraries.map((itinerary, idx) => (
+                          <motion.div
+                            key={itinerary.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1.3 + idx * 0.1 }}
+                          >
+                            <Link href={`/itineraries/${itinerary.id}`} className="block group h-full">
+                              <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 hover:border-violet-300 transition-all shadow-md hover:shadow-xl h-full flex flex-col group-hover:scale-105 transform duration-300">
+                                {/* Thumbnail */}
+                                {itinerary.thumbnail ? (
+                                  <div className="relative h-40 overflow-hidden bg-gray-200">
+                                    <img
+                                      src={itinerary.thumbnail}
+                                      alt={itinerary.title}
+                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                      loading="lazy"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                                  </div>
+                                ) : (
+                                  <div className="h-40 bg-gradient-to-br from-violet-100 to-fuchsia-100 flex items-center justify-center">
+                                    <MapPin size={48} className="text-violet-400" />
+                                  </div>
+                                )}
+
+                                {/* Content */}
+                                <div className="p-4 flex-1 flex flex-col justify-between">
+                                  <div>
+                                    <h4 className="text-gray-900 font-bold text-sm mb-2 line-clamp-2 group-hover:text-violet-700 transition-colors">
+                                      {itinerary.title}
+                                    </h4>
+                                    {itinerary.description && (
+                                      <p className="text-gray-600 text-xs mb-3 line-clamp-2">
+                                        {itinerary.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <Calendar size={12} />
+                                    <span>{formatDate(itinerary.updated_at)}</span>
+                                  </div>
+                                </div>
+
+                                {/* Hover Overlay */}
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  whileHover={{ opacity: 1 }}
+                                  className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 backdrop-blur-sm pointer-events-none rounded-2xl flex items-center justify-center"
+                                >
+                                  <button className="px-6 py-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all">
+                                    View Plan
+                                  </button>
+                                </motion.div>
+                              </div>
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+
                   {/* Helper Text */}
                   <motion.p 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1 }}
-                    className="text-xs text-gray-400 text-center mt-6"
+                    className="text-xs text-gray-400 text-center"
                   >
                     Press Enter to send • Shift + Enter for new line
                   </motion.p>
@@ -324,14 +472,14 @@ export default function ChatPage() {
           )}
         </AnimatePresence>
 
-        {/* Menu and Plus Button */}
+        {/* Menu Button */}
         <ItineraryMenu 
           isOpen={isMenuOpen} 
           onClose={() => setIsMenuOpen(false)} 
         />
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="absolute right-6 bottom-28 w-14 h-14 bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all z-50"
+          className="absolute right-6 bottom-28 w-14 h-14 bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all z-40"
         >{}
           <motion.div
             animate={{ rotate: isMenuOpen ? 45 : 0 }}
