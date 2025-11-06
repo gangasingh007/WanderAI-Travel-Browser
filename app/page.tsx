@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import React, { useState, useRef, useEffect } from "react";
 import GlassCarousel from "@/components/GlassCarousel";
 // UI-only landing page: no auth or data dependencies
@@ -65,43 +64,35 @@ function useSectionVisibility(threshold: number = 0.3) {
   return { visibleSections, registerSection };
 }
 
-// Creator card data
+// Creator card data (base images + hover videos)
 const creators = [
   {
     name: "@the.city.nomad",
     description: "Exploring hidden gems in bustling cities across Asia",
-    gif: "https://media.giphy.com/media/3o7TKSjR3IDRxQ0XWW/giphy.gif",
+    photo: "/1.png",
+    video: "/1.1.mp4",
     place: "Delhi, India"
   },
   {
     name: "@wanderlust_solo",
     description: "Solo adventures discovering the world one destination at a time",
-    gif: "https://media.giphy.com/media/l0MYGb3LuZui8KVXa/giphy.gif",
+    photo: "/2.png",
+    video: "/2.1.mp4",
     place: "Tokyo, Japan"
   },
   {
     name: "@foodie_trails",
     description: "Following flavors from street food to fine dining around the globe",
-    gif: "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif",
+    photo: "/3.png",
+    video: "/3.1.mp4",
     place: "Bangkok, Thailand"
   },
   {
     name: "@mountain_roamer",
     description: "Chasing peaks and breathtaking views in the Himalayas",
-    gif: "https://media.giphy.com/media/l0HlGIXMJBKhqoJmw/giphy.gif",
+    photo: "/4.png",
+    video: "/4.1.mp4",
     place: "Nepal"
-  },
-  {
-    name: "@jet_set_travel",
-    description: "Luxury travel experiences and exclusive destinations worldwide",
-    gif: "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif",
-    place: "Dubai, UAE"
-  },
-  {
-    name: "@artistic.voyager",
-    description: "Capturing art, architecture, and culture through my lens",
-    gif: "https://media.giphy.com/media/3o7TKSjR3IDRxQ0XWW/giphy.gif",
-    place: "Paris, France"
   }
 ];
 
@@ -115,17 +106,23 @@ function CreatorCollage({ isVisible }: { isVisible: boolean }) {
 
   return (
     <div className="relative py-8">
-      {/* Simple white fade overlays */}
+      {/* Curved edge fades to blend into background */}
       <div 
-        className="pointer-events-none absolute left-0 top-0 bottom-0 w-40 z-20"
+        className="pointer-events-auto absolute left-0 top-0 bottom-0 w-44 z-20"
         style={{
-          background: 'linear-gradient(to right, white 0%, rgba(255, 255, 255, 0.8) 40%, rgba(255, 255, 255, 0.4) 70%, transparent 100%)'
+          background: `
+            radial-gradient(220px 80% at 0% 50%, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.65) 45%, rgba(255,255,255,0.0) 75%),
+            linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.0) 60%)
+          `
         }}
       />
       <div 
-        className="pointer-events-none absolute right-0 top-0 bottom-0 w-40 z-20"
+        className="pointer-events-auto absolute right-0 top-0 bottom-0 w-44 z-20"
         style={{
-          background: 'linear-gradient(to left, white 0%, rgba(255, 255, 255, 0.8) 40%, rgba(255, 255, 255, 0.4) 70%, transparent 100%)'
+          background: `
+            radial-gradient(220px 80% at 100% 50%, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.65) 45%, rgba(255,255,255,0.0) 75%),
+            linear-gradient(to left, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.0) 60%)
+          `
         }}
       />
       
@@ -169,7 +166,7 @@ function CreatorCard({
 }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullyVisible, setIsFullyVisible] = useState(false);
-  const gifRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Check if card is fully visible using IntersectionObserver
@@ -206,16 +203,38 @@ function CreatorCard({
     onHoverChange(true);
     setIsPlaying(true);
     
-    // Force GIF to restart by reloading with timestamp
-    if (gifRef.current) {
-      const originalSrc = creator.gif.split('?')[0];
-      gifRef.current.src = originalSrc + '?t=' + Date.now();
+    // Start video playback on hover when ready
+    if (videoRef.current) {
+      const vid = videoRef.current;
+      const tryPlay = () => {
+        // Only attempt play when metadata is available or we have some data
+        if (vid.readyState >= 2) {
+          // Avoid unnecessary currentTime resets which can cause re-buffer aborts
+          if (vid.paused) {
+            vid.play().catch(() => {/* ignore autoplay promise rejection */});
+          }
+        } else {
+          const onCanPlay = () => {
+            vid.removeEventListener('canplay', onCanPlay);
+            vid.play().catch(() => {});
+          };
+          vid.addEventListener('canplay', onCanPlay, { once: true });
+          // Kick metadata fetch if needed
+          try { vid.load(); } catch {}
+        }
+      };
+      tryPlay();
     }
   };
 
   const handleMouseLeave = () => {
     setIsPlaying(false);
     onHoverChange(false);
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+      } catch {}
+    }
     };
 
     return (
@@ -235,27 +254,31 @@ function CreatorCard({
     >
       {/* Card content wrapper - prevents layout shift */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden">
-        {/* GIF container */}
+        {/* Media container */}
         <div className="relative aspect-video bg-gray-100 overflow-hidden">
           <div className="absolute inset-0">
-            {/* Static placeholder */}
-            <div 
-              className={`absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center transition-opacity duration-300 ${
-                isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
-            >
-              <div className="text-gray-400 text-4xl">📸</div>
-            </div>
-            {/* GIF that plays on hover */}
+            {/* Base image */}
             <img
-              ref={gifRef}
-              src={creator.gif}
+              src={creator.photo}
               alt={creator.place}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                isPlaying ? 'opacity-0' : 'opacity-100'
+              }`}
+              loading="lazy"
+              decoding="async"
+            />
+            {/* Hover video */}
+            <video
+              ref={videoRef}
+              src={creator.video}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
                 isPlaying ? 'opacity-100' : 'opacity-0'
               }`}
-                  loading="lazy"
-                />
+              muted
+              playsInline
+              preload="metadata"
+              loop
+            />
               </div>
           </div>
         
@@ -307,11 +330,15 @@ type City = 'delhi' | 'jaipur' | 'agra';
 
 function InteractiveJourneyCarousel({ isVisible }: { isVisible: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [displayIndex, setDisplayIndex] = useState(0);
+  const [stagedIndex, setStagedIndex] = useState<number|null>(null);
+  const [stagedLoaded, setStagedLoaded] = useState(false);
   const [dir, setDir] = useState<1|-1>(1);
   const lockRef = useRef(false);
   const resetTokenRef = useRef(0);
+  const loadedSrcsRef = useRef<Set<string>>(new Set());
 
-  const activePhoto = ALL_PHOTOS[currentIndex];
+  const activePhoto = ALL_PHOTOS[displayIndex];
   
   // Determine which city the current photo belongs to
   const getCityForIndex = (index: number): City => {
@@ -322,28 +349,114 @@ function InteractiveJourneyCarousel({ isVisible }: { isVisible: boolean }) {
 
   const highlightedCity = getCityForIndex(currentIndex);
 
-  // Auto-advance carousel
+  // Mark first image as loaded
+  useEffect(() => {
+    const first = ALL_PHOTOS[0]?.src;
+    if (first) loadedSrcsRef.current.add(first);
+  }, []);
+
+  // Auto-advance carousel (load-aware)
   useEffect(() => {
     if (!isVisible || lockRef.current) return;
     const timer = setTimeout(() => {
       setDir(1);
-      setCurrentIndex((prev) => (prev + 1) % ALL_PHOTOS.length);
+      const nextIndex = (currentIndex + 1) % ALL_PHOTOS.length;
+      startTransitionTo(nextIndex);
       resetTokenRef.current += 1;
     }, 4200);
     return () => clearTimeout(timer);
   }, [currentIndex, isVisible]);
 
+  // Prefetch photos to warm cache for smooth transitions
+  useEffect(() => {
+    const prefetch = (urls: string[]) => {
+      urls.forEach((url) => {
+        const img = new window.Image();
+        img.decoding = "async";
+        (img as any).fetchPriority = "low";
+        img.src = url;
+      });
+    };
+    // Prefetch a reasonable subset eagerly, rest in idle time
+    const firstBatch = ALL_PHOTOS.slice(0, 6).map(p => p.src);
+    const secondBatch = ALL_PHOTOS.slice(6).map(p => p.src);
+    prefetch(firstBatch);
+    const idle = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1));
+    idle(() => prefetch(secondBatch));
+  }, []);
+
+  // Add <link rel="preload" as="image"> hints for journey images
+  useEffect(() => {
+    const head = document.head;
+    const links: HTMLLinkElement[] = [];
+    // Preload the first few aggressively, others as low priority
+    ALL_PHOTOS.forEach((p, idx) => {
+      const l = document.createElement('link');
+      l.rel = 'preload';
+      l.as = 'image';
+      l.href = p.src;
+      if (idx < 6) {
+        (l as any).fetchPriority = 'high';
+      }
+      head.appendChild(l);
+      links.push(l);
+    });
+    return () => { links.forEach(l => head.removeChild(l)); };
+  }, []);
+
+  // Just-in-time prefetch of next/previous images when index changes
+  useEffect(() => {
+    const neighbors = [
+      ALL_PHOTOS[(currentIndex + 1) % ALL_PHOTOS.length]?.src,
+      ALL_PHOTOS[(currentIndex - 1 + ALL_PHOTOS.length) % ALL_PHOTOS.length]?.src,
+    ].filter(Boolean) as string[];
+    neighbors.forEach((url) => {
+      const img = new window.Image();
+      img.decoding = 'async';
+      (img as any).fetchPriority = 'low';
+      img.src = url;
+    });
+  }, [currentIndex]);
+
+  const startTransitionTo = (nextIndex: number) => {
+    setCurrentIndex(nextIndex);
+    const nextSrc = ALL_PHOTOS[nextIndex].src;
+    const doStage = () => {
+      setStagedIndex(nextIndex);
+      setStagedLoaded(true);
+    };
+    if (loadedSrcsRef.current.has(nextSrc)) {
+      doStage();
+    } else {
+      setStagedLoaded(false);
+      setStagedIndex(nextIndex);
+      const img = new window.Image();
+      img.decoding = 'async';
+      (img as any).fetchPriority = 'high';
+      img.onload = () => {
+        loadedSrcsRef.current.add(nextSrc);
+        setStagedLoaded(true);
+      };
+      img.src = nextSrc;
+    }
+  };
+
   const goToPhoto = (direction: 1|-1) => {
     if (lockRef.current) return;
     lockRef.current = true;
     setDir(direction);
-    setCurrentIndex((prev) => (prev + direction + ALL_PHOTOS.length) % ALL_PHOTOS.length);
+    const nextIndex = (currentIndex + direction + ALL_PHOTOS.length) % ALL_PHOTOS.length;
+    startTransitionTo(nextIndex);
     resetTokenRef.current += 1;
-    setTimeout(() => { lockRef.current = false; }, 480);
   };
 
   const selectCity = (city: City) => {
-    setCurrentIndex(CITY_START_INDICES[city]);
+    if (lockRef.current) return;
+    const target = CITY_START_INDICES[city];
+    const direction: 1|-1 = target === currentIndex ? 1 : (target > currentIndex ? 1 : -1);
+    lockRef.current = true;
+    setDir(direction);
+    startTransitionTo(target);
     resetTokenRef.current += 1;
   };
 
@@ -351,19 +464,36 @@ function InteractiveJourneyCarousel({ isVisible }: { isVisible: boolean }) {
     <div className="relative overflow-hidden rounded-3xl border border-white/40 bg-white/30 backdrop-blur-2xl shadow-[0_8px_32px_rgba(31,38,135,0.25)]">
       <div className="relative aspect-[16/10] md:aspect-[4/3]">
         <div className="absolute inset-0">
-          <AnimatePresence initial={false} custom={dir}>
+          {/* Base image (current) */}
+          <img
+            src={ALL_PHOTOS[displayIndex].src}
+            alt={ALL_PHOTOS[displayIndex].alt}
+            className="h-full w-full object-cover"
+            loading={displayIndex === 0 ? "eager" : "lazy"}
+            fetchPriority={displayIndex === 0 ? "high" : "auto"}
+            decoding="async"
+          />
+          {/* Overlay staged image for seamless crossfade */}
+          {stagedIndex !== null && (
             <motion.img
-              key={`${currentIndex}-${activePhoto.src}`}
-              src={activePhoto.src}
-              alt={activePhoto.alt}
-              className="h-full w-full object-cover"
-              loading="lazy"
-              initial={{ opacity: 0, x: dir > 0 ? 60 : -60, scale: 1.02 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: dir > 0 ? -60 : 60, scale: 1.01 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              key={`staged-${stagedIndex}-${ALL_PHOTOS[stagedIndex].src}`}
+              src={ALL_PHOTOS[stagedIndex].src}
+              alt={ALL_PHOTOS[stagedIndex].alt}
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ opacity: 0 }}
+              initial={{ opacity: 0, x: dir > 0 ? 40 : -40, scale: 1.01 }}
+              animate={{ opacity: stagedLoaded ? 1 : 0, x: 0, scale: 1 }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+              onAnimationComplete={() => {
+                if (stagedLoaded && stagedIndex !== null) {
+                  setDisplayIndex(stagedIndex);
+                  setStagedIndex(null);
+                  setStagedLoaded(false);
+                  setTimeout(() => { lockRef.current = false; }, 80);
+                }
+              }}
             />
-          </AnimatePresence>
+          )}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-white/5 to-white/10" />
           <div className="pointer-events-none absolute inset-0 ring-1 ring-white/50 rounded-3xl" />
         </div>
@@ -375,15 +505,43 @@ function InteractiveJourneyCarousel({ isVisible }: { isVisible: boolean }) {
               key={city}
               type="button"
               onClick={() => selectCity(city)}
-              className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-medium shadow-md backdrop-blur-md transition-all duration-300 cursor-pointer ${
+              className={`relative overflow-hidden px-3 py-1.5 rounded-full text-xs md:text-sm font-medium shadow-md backdrop-blur-md transition-all duration-300 cursor-pointer ${
                 highlightedCity === city
                   ? 'bg-white/90 text-black border-2 border-black/20'
                   : 'bg-white/70 text-black/80 border border-white/40 hover:bg-white/85'
               }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onMouseEnter={(e) => {
+                const t = e.currentTarget as HTMLElement;
+                const r = t.getBoundingClientRect();
+                const x = e.clientX - r.left;
+                const y = e.clientY - r.top;
+                const g = t.querySelector('.btn-glow') as HTMLElement | null;
+                if (g) {
+                  g.style.left = `${x}px`;
+                  g.style.top = `${y}px`;
+                  g.style.opacity = '1';
+                }
+              }}
+              onMouseMove={(e) => {
+                const t = e.currentTarget as HTMLElement;
+                const r = t.getBoundingClientRect();
+                const x = e.clientX - r.left;
+                const y = e.clientY - r.top;
+                const g = t.querySelector('.btn-glow') as HTMLElement | null;
+                if (g) {
+                  g.style.left = `${x}px`;
+                  g.style.top = `${y}px`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                const g = (e.currentTarget as HTMLElement).querySelector('.btn-glow') as HTMLElement | null;
+                if (g) g.style.opacity = '0';
+              }}
             >
               {city.charAt(0).toUpperCase() + city.slice(1)}
+              <span className="btn-glow pointer-events-none absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-150" style={{ background: "radial-gradient(32px 32px at center, rgba(0,0,0,0.15), rgba(0,0,0,0))" }} />
             </motion.button>
           ))}
         </div>
@@ -467,6 +625,24 @@ export default function Home() {
   const isHowItWorksVisible = visibleSections.has('howitworks');
   const isCtaVisible = visibleSections.has('cta');
 
+  // Aggressively prefetch ALL images used by carousels on first mount
+  useEffect(() => {
+    const urls = new Set<string>();
+    // Creator collage GIFs
+    creators.forEach((c) => urls.add(c.gif));
+    // Journey carousel photos
+    ALL_PHOTOS.forEach((p) => urls.add(p.src));
+    // Prefetch
+    urls.forEach((url) => {
+      try {
+        const img = new window.Image();
+        img.decoding = 'async';
+        (img as any).fetchPriority = 'low';
+        img.src = url;
+      } catch {}
+    });
+  }, []);
+
   return (
     <div className="relative w-full bg-white no-select-text">
 
@@ -478,6 +654,9 @@ export default function Home() {
             src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop"
             alt="Mountain landscape"
             className="h-full w-full object-cover brightness-105 contrast-105 saturate-115"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
           />
           {/* Darker, warmer gradient for better legibility without washing out */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/50" />
@@ -874,6 +1053,18 @@ export default function Home() {
                 <a
                   href="#follow"
                   className="group relative inline-grid place-items-center h-12 px-8 font-semibold text-black rounded-full border border-white/60 bg-white/90 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300 hover:bg-white cursor-pointer"
+                  onMouseEnter={(e) => {
+                    const t = e.currentTarget as HTMLElement;
+                    const r = t.getBoundingClientRect();
+                    const x = e.clientX - r.left;
+                    const y = e.clientY - r.top;
+                    const g = t.querySelector('.btn-glow') as HTMLElement | null;
+                    if (g) {
+                      g.style.left = `${x}px`;
+                      g.style.top = `${y}px`;
+                      g.style.opacity = '1';
+                    }
+                  }}
                   onMouseMove={(e) => {
                     const t = e.currentTarget as HTMLElement;
                     const r = t.getBoundingClientRect();
@@ -888,7 +1079,9 @@ export default function Home() {
                   }}
                 >
                   <span className="relative z-10">Follow journey</span>
-                  <span className="btn-glow pointer-events-none absolute h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 group-hover:opacity-80 transition-opacity duration-200" style={{ background: "radial-gradient(64px 64px at center, rgba(186,230,253,0.26), rgba(186,230,253,0))" }} />
+                  <span className="btn-glow pointer-events-none absolute h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-150" style={{ background: "radial-gradient(64px 64px at center, rgba(186,230,253,0.26), rgba(186,230,253,0))" }} />
+                  <span className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <span className="pointer-events-none absolute -inset-6 rounded-[999px] bg-white/30 blur-2xl opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-transform duration-500" />
                 </a>
 
                 <div className="flex items-center gap-2 rounded-full border border-white/50 bg-white/60 px-4 h-12 backdrop-blur-md">
@@ -903,18 +1096,25 @@ export default function Home() {
 
       {/* Creators Collage Section */}
       <section ref={registerSection('collage')} className="relative px-6 md:px-12 lg:px-20 py-16 md:py-24 overflow-hidden">
-        {/* Aesthetic static background */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+        {/* Pastel ambient background (to match Journey vibe) */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-50/70 via-indigo-50/50 to-emerald-50/70 blur-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/50 to-white/40 mix-blend-overlay" />
           {/* Subtle pattern overlay */}
           <div 
-            className="absolute inset-0 opacity-[0.02]"
+            className="absolute inset-0 opacity-[0.03]"
             style={{
-              backgroundImage: `radial-gradient(circle at 2px 2px, rgb(0,0,0) 1px, transparent 0)`,
-              backgroundSize: '40px 40px'
+              backgroundImage: `radial-gradient(circle at 2px 2px, rgba(0,0,0,0.6) 1px, transparent 0)`,
+              backgroundSize: '44px 44px'
             }}
           />
-          {/* Soft color accents */}
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 via-transparent to-blue-50/30" />
+          {/* Soft radial accents */}
+          <div 
+            className="absolute -inset-10"
+            style={{
+              background: 'radial-gradient(600px 300px at 15% 20%, rgba(255,182,193,0.18), rgba(255,255,255,0)), radial-gradient(500px 260px at 85% 30%, rgba(186,230,253,0.18), rgba(255,255,255,0)), radial-gradient(520px 280px at 50% 80%, rgba(167,243,208,0.16), rgba(255,255,255,0))'
+            }}
+          />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto">
@@ -997,15 +1197,71 @@ export default function Home() {
                       ease: [0.4, 0, 0.2, 1]
                     }
                   }}
+                  onMouseMove={(e) => {
+                    const t = e.currentTarget as HTMLElement;
+                    const r = t.getBoundingClientRect();
+                    const x = e.clientX - r.left;
+                    const y = e.clientY - r.top;
+                    t.style.setProperty('--mx', x + 'px');
+                    t.style.setProperty('--my', y + 'px');
+                    // Subtle, elegant color based on horizontal position
+                    const hue = Math.round((x / Math.max(r.width, 1)) * 360);
+                    const sat = 32; // soft saturation
+                    const light = 72; // airy lightness
+                    t.style.setProperty('--h', hue.toString());
+                    t.style.setProperty('--s', sat + '%');
+                    t.style.setProperty('--l', light + '%');
+                    // Tiny 3D tilt toward cursor
+                    const cx = r.width / 2;
+                    const cy = r.height / 2;
+                    const dx = (x - cx) / Math.max(cx, 1);
+                    const dy = (y - cy) / Math.max(cy, 1);
+                    const tiltX = (-dy * 4).toFixed(2) + 'deg';
+                    const tiltY = (dx * 4).toFixed(2) + 'deg';
+                    t.style.setProperty('--rx', tiltX);
+                    t.style.setProperty('--ry', tiltY);
+                  }}
+                  onMouseLeave={(e) => {
+                    const t = e.currentTarget as HTMLElement;
+                    t.style.setProperty('--mx', '-1000px');
+                    t.style.setProperty('--my', '-1000px');
+                    t.style.setProperty('--h', '210');
+                    t.style.setProperty('--s', '30%');
+                    t.style.setProperty('--l', '68%');
+                    t.style.setProperty('--rx', '0deg');
+                    t.style.setProperty('--ry', '0deg');
+                  }}
                   className="group relative"
                 >
-                  <div className="relative h-full p-8 rounded-3xl border border-white/40 bg-white/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(31,38,135,0.15)] overflow-hidden transition-all duration-500 hover:shadow-[0_12px_48px_rgba(31,38,135,0.25)] hover:bg-white/50">
+                  {/* Unified cursor-reactive light across entire card (border + body) */}
+                  <div
+                    className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{
+                      background: 'radial-gradient(360px 360px at var(--mx, -1000px) var(--my, -1000px), hsla(var(--h, 210), var(--s, 30%), var(--l, 68%), 0.12), rgba(255,255,255,0))',
+                      mixBlendMode: 'screen'
+                    }}
+                  />
+                  <div
+                    className="relative h-full p-8 rounded-3xl border border-white/40 bg-white/50 backdrop-blur-2xl shadow-[0_8px_32px_rgba(31,38,135,0.15)] overflow-hidden transition-all duration-500 hover:shadow-[0_12px_48px_rgba(31,38,135,0.25)] hover:bg-white/60"
+                    style={{
+                      transform: 'perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))',
+                      willChange: 'transform'
+                    } as React.CSSProperties}
+                  >
                     {/* Glass gradient overlay on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                    <div className="absolute inset-0 ring-1 ring-white/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white/10 opacity-30 group-hover:opacity-60 transition-opacity duration-500 pointer-events-none" />
+                    <div className="absolute inset-0 ring-1 ring-white/50 rounded-3xl opacity-30 group-hover:opacity-60 transition-opacity duration-500 pointer-events-none" />
                     
                     {/* Glow effect on hover */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-blue-200/20 via-purple-200/20 to-amber-200/20 rounded-3xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500 pointer-events-none" />
+
+                    {/* Specular highlight for glossy feel */}
+                    <div
+                      className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-70 transition-opacity duration-300"
+                      style={{
+                        background: 'radial-gradient(140px 140px at calc(var(--mx, -1000px) + 24px) calc(var(--my, -1000px) + 24px), rgba(255,255,255,0.20), rgba(255,255,255,0))'
+                      }}
+                    />
 
                     {/* Content */}
                     <div className="relative z-10">
@@ -1031,21 +1287,7 @@ export default function Home() {
                         {feature.description}
                       </p>
 
-                      {/* Decorative icon */}
-                      <motion.div
-                        initial={false}
-                        animate={hasViewed('features') || visibleSections.has('features') ? { scale: 1, rotate: 0 } : { scale: 0, rotate: -180 }}
-                        transition={hasViewed('features') ? { duration: 0 } : { 
-                          duration: 0.6, 
-                          delay: 0.4 + idx * 0.15,
-                          type: "spring",
-                          stiffness: 200,
-                          damping: 15
-                        }}
-                        className="absolute bottom-4 right-4 text-4xl opacity-20 group-hover:opacity-40 transition-opacity duration-300"
-                      >
-                        {feature.icon}
-                      </motion.div>
+                      {/* Removed inner-only glow to avoid center/border mismatch */}
               </div>
               </div>
                 </motion.div>
