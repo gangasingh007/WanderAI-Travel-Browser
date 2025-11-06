@@ -10,7 +10,7 @@ export default function TypingIndicator() {
       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
         <Bot size={20} className="text-gray-600" />
       </div>
-
+      
       {/* Message Text */}
       <div className="p-3 rounded-lg bg-gray-200 text-black">
         <div className="flex gap-1.5 items-center">

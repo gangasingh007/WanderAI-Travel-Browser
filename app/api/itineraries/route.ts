@@ -5,21 +5,29 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   
   try {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
     // Get limit from query params (optional)
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit');
     const limitNumber = limit ? parseInt(limit, 10) : undefined;
 
-    // Fetch user's itineraries
+    // Fetch all public itineraries from all users
     let query = supabase
       .from('itineraries')
-      .select('id, title, description, thumbnail, created_at, updated_at')
-      .eq('created_by', user.id)
+      .select(`
+        id, 
+        title, 
+        description, 
+        thumbnail, 
+        created_at, 
+        updated_at,
+        created_by,
+        users:created_by (
+          username,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq('is_public', true)
       .order('updated_at', { ascending: false });
 
     if (limitNumber && limitNumber > 0) {

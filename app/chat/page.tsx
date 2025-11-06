@@ -218,7 +218,7 @@ export default function ChatPage() {
             )}
           </AnimatePresence>
 
-          {/* Centered Input (Initial State) */}
+          {/* Centered Input (Initial State) - Fixed positioning */}
           <AnimatePresence>
             {!hasStartedChat && (
               <motion.div
@@ -230,7 +230,7 @@ export default function ChatPage() {
                   transition: { duration: 0.5, ease: "easeInOut" }
                 }}
                 transition={{ duration: 0.5 }}
-                className="absolute inset-0 flex flex-col items-center justify-center px-4 pb-20 overflow-y-auto"
+                className="flex flex-col items-center justify-center w-full min-h-full px-4 py-12"
               >
                 <div className="w-full max-w-6xl">
                   {/* Welcome Section */}
@@ -418,7 +418,7 @@ export default function ChatPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1 }}
-                    className="text-xs text-gray-400 text-center"
+                    className="text-xs text-gray-400 text-center pb-8"
                   >
                     Press Enter to send • Shift + Enter for new line
                   </motion.p>
@@ -472,11 +472,13 @@ export default function ChatPage() {
           )}
         </AnimatePresence>
 
-        {/* Menu Button */}
+        {/* Menu */}
         <ItineraryMenu 
           isOpen={isMenuOpen} 
           onClose={() => setIsMenuOpen(false)} 
         />
+
+        {/* Menu Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="absolute right-6 bottom-28 w-14 h-14 bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all z-40"
