@@ -6,12 +6,12 @@ import { AnimatePresence, motion } from "framer-motion";
 type Slide = { src: string; alt: string };
 
 const SLIDES: Slide[] = [
-  { src: "https://images.unsplash.com/photo-1573398643956-2b9e6ade3456?auto=format&fit=crop&q=80&w=1920", alt: "Indian landscape 1" },
-  { src: "https://plus.unsplash.com/premium_photo-1661919589683-f11880119fb7?auto=format&fit=crop&q=80&w=1920", alt: "Indian landscape 2" },
-  { src: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=1920", alt: "Indian landscape 3" },
-  { src: "https://plus.unsplash.com/premium_photo-1661943546908-7f84a497f5e3?auto=format&fit=crop&q=80&w=1920", alt: "Indian landscape 4" },
-  { src: "https://plus.unsplash.com/premium_photo-1697730426305-113c62434f97?auto=format&fit=crop&q=80&w=1920", alt: "Indian landscape 5" },
-  { src: "https://images.unsplash.com/photo-1712388430474-ace0c16051e2?auto=format&fit=crop&q=80&w=1920", alt: "Indian landscape 6" },
+  { src: "https://images.unsplash.com/photo-1573398643956-2b9e6ade3456?auto=format&fit=crop&q=80&w=1280", alt: "Indian landscape 1" },
+  { src: "https://plus.unsplash.com/premium_photo-1661919589683-f11880119fb7?auto=format&fit=crop&q=80&w=1280", alt: "Indian landscape 2" },
+  { src: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=1280", alt: "Indian landscape 3" },
+  { src: "https://images.unsplash.com/photo-1600402808924-9c591a6dace8?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1171", alt: "Indian landscape 4" },
+  { src: "https://plus.unsplash.com/premium_photo-1697730426305-113c62434f97?auto=format&fit=crop&q=80&w=1280", alt: "Indian landscape 5" },
+  { src: "https://images.unsplash.com/photo-1712388430474-ace0c16051e2?auto=format&fit=crop&q=80&w=1280", alt: "Indian landscape 6" },
 ];
 
 function useAutoPlay(cb: () => void, ms: number, paused: boolean, resetToken: number) {
@@ -30,25 +30,72 @@ function useAutoPlay(cb: () => void, ms: number, paused: boolean, resetToken: nu
 }
 
 export default function GlassCarousel({ paused = false }: { paused?: boolean }) {
-  const [i, setI] = useState(0);
+  const [i, setI] = useState(0); // current (intended) index
+  const [displayIndex, setDisplayIndex] = useState(0); // actually rendered image index
+  const [stagedIndex, setStagedIndex] = useState<number|null>(null);
+  const [stagedLoaded, setStagedLoaded] = useState(false);
   const [dir, setDir] = useState<1|-1>(1);
   // autoplay should not pause on hover
   const lockRef = useRef(false);
   const [resetToken, setResetToken] = useState(0);
+  const loadedSrcsRef = useRef<Set<string>>(new Set());
+
+  // Warm the browser cache with slide images on mount
+  useEffect(() => {
+    // Prefetch the first few aggressively, then the rest in idle time
+    const prefetch = (urls: string[]) => {
+      urls.forEach((url) => {
+        const img = new window.Image();
+        img.decoding = "async";
+        img.loading = "eager" as any;
+        img.referrerPolicy = "no-referrer";
+        img.src = url;
+      });
+    };
+    const firstBatch = SLIDES.slice(0, 3).map(s => s.src);
+    const secondBatch = SLIDES.slice(3).map(s => s.src);
+    prefetch(firstBatch);
+    const idle = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1));
+    idle(() => prefetch(secondBatch));
+  }, []);
+
+  const startTransitionTo = useCallback((nextIndex: number) => {
+    setI(nextIndex);
+    const nextSrc = SLIDES[nextIndex].src;
+    const doStage = () => {
+      setStagedIndex(nextIndex);
+      setStagedLoaded(true);
+    };
+    if (loadedSrcsRef.current.has(nextSrc)) {
+      doStage();
+    } else {
+      setStagedLoaded(false);
+      setStagedIndex(nextIndex);
+      const img = new window.Image();
+      img.decoding = "async";
+      (img as any).fetchPriority = "high";
+      img.onload = () => {
+        loadedSrcsRef.current.add(nextSrc);
+        setStagedLoaded(true);
+      };
+      img.src = nextSrc;
+    }
+  }, []);
 
   const next = useCallback(() => {
     setDir(1);
-    setI((v) => (v + 1) % SLIDES.length);
-  }, []);
+    const nextIndex = (i + 1) % SLIDES.length;
+    startTransitionTo(nextIndex);
+  }, [i, startTransitionTo]);
 
-  useAutoPlay(next, 4200, paused, resetToken);
+  useAutoPlay(next, 2600, paused, resetToken);
 
   const go = (d: 1|-1) => {
     if (lockRef.current) return;
     lockRef.current = true;
     setDir(d);
-    setI((v) => (v + d + SLIDES.length) % SLIDES.length);
-    setTimeout(() => { lockRef.current = false; }, 480);
+    const nextIndex = (i + d + SLIDES.length) % SLIDES.length;
+    startTransitionTo(nextIndex);
     // reset autoplay timer after interaction to keep cadence smooth
     setResetToken((t) => t + 1);
   };
@@ -73,7 +120,7 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const active = SLIDES[i];
+  const active = SLIDES[displayIndex];
 
   return (
     <section
@@ -83,34 +130,87 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* lively ambient backdrop from active image */}
-      <div
-        className="absolute inset-0 -z-10 blur-3xl opacity-60 scale-110"
-        style={{ backgroundImage: `url(${active.src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      {/* Section-wide ambient backdrop with smooth crossfade */}
+      <motion.div
+        key={`section-bg-display-${SLIDES[displayIndex].src}`}
+        className="absolute inset-0 -z-10 blur-3xl opacity-50 scale-110"
+        style={{ backgroundImage: `url(${SLIDES[displayIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        initial={{ opacity: 0.5 }}
+        animate={{ opacity: stagedIndex !== null && stagedLoaded ? 0 : 0.5 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         aria-hidden
       />
+      {stagedIndex !== null && (
+        <motion.div
+          key={`section-bg-staged-${SLIDES[stagedIndex].src}`}
+          className="absolute inset-0 -z-10 blur-3xl opacity-50 scale-110"
+          style={{ backgroundImage: `url(${SLIDES[stagedIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: stagedLoaded ? 0.5 : 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden
+        />
+      )}
 
       <div className="relative overflow-hidden rounded-3xl border border-white/30 bg-white/20 backdrop-blur-2xl shadow-[0_8px_32px_rgba(31,38,135,0.37)]">
+        {/* Ambient backdrop inside with smooth crossfade */}
+        <motion.div
+          key={`bg-display-${SLIDES[displayIndex].src}`}
+          className="absolute inset-0 z-0 blur-3xl opacity-50 scale-110"
+          style={{ backgroundImage: `url(${SLIDES[displayIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          initial={{ opacity: 0.5 }}
+          animate={{ opacity: stagedIndex !== null && stagedLoaded ? 0 : 0.5 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden
+        />
+        {stagedIndex !== null && (
+          <motion.div
+            key={`bg-staged-${SLIDES[stagedIndex].src}`}
+            className="absolute inset-0 z-0 blur-3xl opacity-50 scale-110"
+            style={{ backgroundImage: `url(${SLIDES[stagedIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: stagedLoaded ? 0.5 : 0 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            aria-hidden
+          />
+        )}
         <div className="relative aspect-[16/9] md:aspect-[21/9]">
-          <AnimatePresence initial={false} custom={dir}>
+          {/* Base image (currently displayed) */}
+          <img
+            key={`display-${SLIDES[displayIndex].src}`}
+            src={SLIDES[displayIndex].src}
+            alt={SLIDES[displayIndex].alt}
+            loading={displayIndex === 0 ? "eager" : "lazy"}
+            fetchPriority={displayIndex === 0 ? "high" : "auto"}
+            decoding="async"
+            className="absolute inset-0 z-10 h-full w-full object-cover will-change-transform"
+          />
+          {/* Staged overlay for seamless crossfade */}
+          {stagedIndex !== null && (
             <motion.img
-              key={active.src}
-              src={active.src}
-              alt={active.alt}
-              loading="lazy"
-              className="absolute inset-0 h-full w-full object-cover will-change-transform"
-              initial={{ opacity: 0, x: dir > 0 ? 60 : -60, scale: 1.02 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: dir > 0 ? -60 : 60, scale: 1.01 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              key={`staged-${SLIDES[stagedIndex].src}`}
+              src={SLIDES[stagedIndex].src}
+              alt={SLIDES[stagedIndex].alt}
+              className="absolute inset-0 z-10 h-full w-full object-cover will-change-transform"
+              initial={{ opacity: 0, x: dir > 0 ? 20 : -20, scale: 1.01 }}
+              animate={{ opacity: stagedLoaded ? 1 : 0, x: 0, scale: 1 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              onAnimationComplete={() => {
+                if (stagedLoaded && stagedIndex !== null) {
+                  setDisplayIndex(stagedIndex);
+                  setStagedIndex(null);
+                  setStagedLoaded(false);
+                  setTimeout(() => { lockRef.current = false; }, 80);
+                }
+              }}
             />
-          </AnimatePresence>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-white/5 to-white/10" />
-          <div className="pointer-events-none absolute inset-0 ring-1 ring-white/40 rounded-3xl" />
+          )}
+          <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-b from-white/10 via-white/5 to-white/10" />
+          <div className="pointer-events-none absolute inset-0 z-20 ring-1 ring-white/40 rounded-3xl" />
         </div>
 
-        {/* controls */}
-        <div className="absolute inset-0 flex items-center justify-between px-2 md:px-4">
+        {/* controls (ensure above overlays) */}
+        <div className="absolute inset-0 z-30 flex items-center justify-between px-2 md:px-4">
           <motion.button
             type="button"
             aria-label="Previous slide"
@@ -162,13 +262,13 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
         </div>
 
         {/* dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
           {SLIDES.map((_, idx) => (
             <button
               key={idx}
               aria-label={`Go to slide ${idx + 1}`}
               className={`h-2.5 w-2.5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 cursor-pointer ${idx === i ? "bg-white/90 shadow" : "bg-white/40 hover:bg-white/60"}`}
-              onClick={() => { if (!lockRef.current) { setI(idx); setDir(1); setResetToken((t) => t + 1); } }}
+              onClick={() => { if (!lockRef.current) { setDir(idx > i ? 1 : -1); startTransitionTo(idx); setResetToken((t) => t + 1); } }}
             />
           ))}
         </div>
