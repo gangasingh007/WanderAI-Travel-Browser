@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Sidebar from "@/components/sidebar/Sidebar";
 import MapCanvas, { type Pin } from "@/components/map/MapCanvas";
 import MarkerPalette from "@/components/map/MarkerPalette";
@@ -19,8 +19,72 @@ export default function ItinAddManualPage() {
   const [isPathMode, setIsPathMode] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [isLoadingAI, setIsLoadingAI] = useState(true);
+  const [initialPinsForMap, setInitialPinsForMap] = useState<Pin[] | null>(null);
   const undoRedoRef = useRef<{ undo: () => Promise<void>; redo: () => Promise<void> } | null>(null);
   const flyToLocationRef = useRef<((center: [number, number], zoom?: number) => void) | null>(null);
+
+  // Load from sessionStorage (AI) or fetch by draftId
+  useEffect(() => {
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const draftId = url.searchParams.get('draftId');
+
+        if (draftId) {
+          const res = await fetch(`/api/itineraries/${draftId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setTitle(data.title || "");
+            setDescription(data.description || "");
+            setIsPublic(!!data.isPublic);
+            const formattedPins: Pin[] = (data.pins || []).map((pin: any) => ({
+              lngLat: pin.lngLat,
+              title: pin.title || "",
+              description: pin.description || "",
+              type: pin.type || "CUSTOM",
+              icon: pin.icon || "PIN",
+              orderIndex: pin.orderIndex || 0,
+              day: pin.day,
+              meta: pin.meta || {},
+              id: pin.id,
+            }));
+            setPins(formattedPins);
+            setInitialPinsForMap(formattedPins);
+            setIsLoadingAI(false);
+            return;
+          }
+        }
+
+        const aiData = sessionStorage.getItem('aiGeneratedItinerary');
+        if (aiData) {
+          const parsed = JSON.parse(aiData);
+          setTitle(parsed.title || "");
+          setDescription(parsed.description || "");
+          setIsPublic(parsed.isPublic || false);
+          if (parsed.pins && Array.isArray(parsed.pins)) {
+            const formattedPins: Pin[] = parsed.pins.map((pin: any) => ({
+              lngLat: pin.lngLat || [pin.longitude || 0, pin.latitude || 0],
+              title: pin.title || "",
+              description: pin.description || "",
+              type: pin.type || "CUSTOM",
+              icon: pin.icon || "PIN",
+              orderIndex: pin.orderIndex || 0,
+              day: pin.day,
+              meta: pin.meta || {},
+            }));
+            setPins(formattedPins);
+            setInitialPinsForMap(formattedPins);
+          }
+          sessionStorage.removeItem('aiGeneratedItinerary');
+        }
+      } catch (error) {
+        console.error("[manual] Error loading data:", error);
+      } finally {
+        setIsLoadingAI(false);
+      }
+    })();
+  }, []);
 
   const handleSaveDraft = async () => {
     setIsSavingDraft(true);
@@ -136,6 +200,18 @@ export default function ItinAddManualPage() {
       setIsSaving(false);
     }
   };
+
+  // Show loading state while checking for AI data
+  if (isLoadingAI) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading itinerary...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex">
@@ -316,6 +392,7 @@ export default function ItinAddManualPage() {
             onPathModeChange={setIsPathMode}
             isPathModeExternal={isPathMode}
             undoRedoRef={undoRedoRef}
+            initialPins={initialPinsForMap || undefined}
             onMapReady={(flyToLocation) => {
               flyToLocationRef.current = flyToLocation;
             }}

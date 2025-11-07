@@ -5,7 +5,7 @@ import { HTMLAttributes } from "react";
 type PaletteItem = {
   id: string;
   label: string;
-  icon: JSX.Element;
+  icon: React.ReactElement;
   type: "HOTEL" | "FOOD" | "ATTRACTION" | "CUSTOM" | "CAR" | "PIN" | "START" | "END" | "BIKE" | "RICKSHAW" | "PLANE" | "TRAIN";
 };
 

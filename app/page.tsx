@@ -628,8 +628,8 @@ export default function Home() {
   // Aggressively prefetch ALL images used by carousels on first mount
   useEffect(() => {
     const urls = new Set<string>();
-    // Creator collage GIFs
-    creators.forEach((c) => urls.add(c.gif));
+    // Creator collage photos
+    creators.forEach((c) => urls.add(c.photo));
     // Journey carousel photos
     ALL_PHOTOS.forEach((p) => urls.add(p.src));
     // Prefetch
