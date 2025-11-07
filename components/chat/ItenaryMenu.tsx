@@ -50,14 +50,14 @@ export default function ItineraryMenu({ isOpen, onClose }: ItineraryMenuProps) {
         >
           <div className="p-2">
             <Link
-              href="/add-itineraries/ai"
+              href="/itineraries/add-itineraries/ai"
               className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-100"
             >
               <Sparkles size={18} className="text-purple-500" />
               Make Itinerary with AI
             </Link>
             <Link
-              href="/add-itineraries/manual"
+              href="/itineraries/add-itineraries/manual"
               className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-100"
             >
               <FilePlus size={18} className="text-blue-500" />
