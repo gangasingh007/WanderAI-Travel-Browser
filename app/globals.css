@@ -238,3 +238,11 @@ input[type="reset"] * {
   animation: fadeRight 60s ease-in-out infinite;
   will-change: background-position;
 }
+/* Hide scrollbar for stories section */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

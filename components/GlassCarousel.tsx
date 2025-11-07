@@ -134,7 +134,11 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
       <motion.div
         key={`section-bg-display-${SLIDES[displayIndex].src}`}
         className="absolute inset-0 -z-10 blur-3xl opacity-50 scale-110"
-        style={{ backgroundImage: `url(${SLIDES[displayIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        style={{ 
+          backgroundImage: `url(${SLIDES[displayIndex].src})`, 
+          backgroundSize: "cover", 
+          backgroundPosition: displayIndex === 4 ? "center 65%" : "center"
+        }}
         initial={{ opacity: 0.5 }}
         animate={{ opacity: stagedIndex !== null && stagedLoaded ? 0 : 0.5 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -144,7 +148,11 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
         <motion.div
           key={`section-bg-staged-${SLIDES[stagedIndex].src}`}
           className="absolute inset-0 -z-10 blur-3xl opacity-50 scale-110"
-          style={{ backgroundImage: `url(${SLIDES[stagedIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          style={{ 
+            backgroundImage: `url(${SLIDES[stagedIndex].src})`, 
+            backgroundSize: "cover", 
+            backgroundPosition: stagedIndex === 4 ? "center 35%" : "center"
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: stagedLoaded ? 0.5 : 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -157,7 +165,11 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
         <motion.div
           key={`bg-display-${SLIDES[displayIndex].src}`}
           className="absolute inset-0 z-0 blur-3xl opacity-50 scale-110"
-          style={{ backgroundImage: `url(${SLIDES[displayIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          style={{ 
+            backgroundImage: `url(${SLIDES[displayIndex].src})`, 
+            backgroundSize: "cover", 
+            backgroundPosition: displayIndex === 4 ? "center 35%" : "center"
+          }}
           initial={{ opacity: 0.5 }}
           animate={{ opacity: stagedIndex !== null && stagedLoaded ? 0 : 0.5 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -167,7 +179,11 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
           <motion.div
             key={`bg-staged-${SLIDES[stagedIndex].src}`}
             className="absolute inset-0 z-0 blur-3xl opacity-50 scale-110"
-            style={{ backgroundImage: `url(${SLIDES[stagedIndex].src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+            style={{ 
+              backgroundImage: `url(${SLIDES[stagedIndex].src})`, 
+              backgroundSize: "cover", 
+              backgroundPosition: stagedIndex === 4 ? "center 35%" : "center"
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: stagedLoaded ? 0.5 : 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -184,6 +200,7 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
             fetchPriority={displayIndex === 0 ? "high" : "auto"}
             decoding="async"
             className="absolute inset-0 z-10 h-full w-full object-cover will-change-transform"
+            style={displayIndex === 4 ? { objectPosition: 'center 35%' } : undefined}
           />
           {/* Staged overlay for seamless crossfade */}
           {stagedIndex !== null && (
@@ -192,6 +209,7 @@ export default function GlassCarousel({ paused = false }: { paused?: boolean }) 
               src={SLIDES[stagedIndex].src}
               alt={SLIDES[stagedIndex].alt}
               className="absolute inset-0 z-10 h-full w-full object-cover will-change-transform"
+              style={stagedIndex === 4 ? { objectPosition: 'center 35%' } : undefined}
               initial={{ opacity: 0, x: dir > 0 ? 20 : -20, scale: 1.01 }}
               animate={{ opacity: stagedLoaded ? 1 : 0, x: 0, scale: 1 }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
