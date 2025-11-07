@@ -38,7 +38,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
     }
   })();
 
-  // Typewriter effect for AI messages
+  // Very fast typewriter effect for AI messages
   useEffect(() => {
     if (!isUser && sanitizedText) {
       setIsAnimating(true);
@@ -47,13 +47,16 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
       let currentIndex = 0;
       const textLength = sanitizedText.length;
       
-      // Adjust speed: smaller = faster (milliseconds per character)
-      const typingSpeed = 1;
+      // VERY FAST typing speed - adjust these values:
+      const charsPerFrame = 3;  // Type 3 characters at once (increase for faster)
+      const typingSpeed = 10;    // Milliseconds between frames (decrease for faster)
       
       const intervalId = setInterval(() => {
-        if (currentIndex <= textLength) {
-          setDisplayedText(sanitizedText.slice(0, currentIndex));
-          currentIndex++;
+        if (currentIndex < textLength) {
+          // Add multiple characters at once for speed
+          const nextIndex = Math.min(currentIndex + charsPerFrame, textLength);
+          setDisplayedText(sanitizedText.slice(0, nextIndex));
+          currentIndex = nextIndex;
         } else {
           clearInterval(intervalId);
           setIsAnimating(false);
@@ -336,7 +339,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
                 </div>
 
                 {/* Draft Card */}
-                {draftData && (
+                {draftData && !isAnimating && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
