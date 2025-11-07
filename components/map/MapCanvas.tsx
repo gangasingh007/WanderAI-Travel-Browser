@@ -40,6 +40,7 @@ export default function MapCanvas({
   initialZoom = 5.5, // Default: India view
   onMapReady,
   showSampleItineraries = false,
+  initialPins,
 }: { 
   enableEditing?: boolean; 
   useDirections?: boolean;
@@ -52,6 +53,7 @@ export default function MapCanvas({
   initialZoom?: number;
   onMapReady?: (flyToLocation: (center: [number, number], zoom?: number) => void) => void;
   showSampleItineraries?: boolean;
+  initialPins?: Pin[];
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
@@ -73,6 +75,7 @@ export default function MapCanvas({
   // Track all mapbox markers by pin ID
   const markersRef = useRef<Map<string, any>>(new Map());
   const [routeSelected, setRouteSelected] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   // Path drawing state
   const [isPathModeInternal, setIsPathModeInternal] = useState(false);
   const prevPathModeRef = useRef(false);
@@ -847,6 +850,84 @@ export default function MapCanvas({
     updateRouteLineRef.current = updateRouteLine;
   }, [updateRouteLine]);
 
+  // Render initial pins passed from parent
+  // Load initial pins once per change without causing parent state loops
+  useEffect(() => {
+    const map = mapRef.current as any;
+    if (!mapReady) return;
+    if (!initialPins || initialPins.length === 0) return;
+
+    (async () => {
+      const mapboxgl = await import("mapbox-gl");
+
+      // Clear any existing markers and state before loading initial pins
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current.clear();
+      pinsRef.current.clear();
+      routeRef.current = [];
+
+      // Sort pins by orderIndex if present to create route order
+      const sorted = [...initialPins].sort((a: any, b: any) => {
+        const ai = typeof a.orderIndex === 'number' ? a.orderIndex : 0;
+        const bi = typeof b.orderIndex === 'number' ? b.orderIndex : 0;
+        return ai - bi;
+      });
+
+      for (const rawPin of sorted) {
+        const id = rawPin.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+        const pin: Pin = {
+          id,
+          type: rawPin.type || "PIN",
+          lngLat: rawPin.lngLat,
+          title: rawPin.title || "",
+          description: rawPin.description || "",
+        };
+
+        const markerEl = createMarkerElement(pin.type);
+        markerEl.style.cursor = "pointer";
+        const marker = new mapboxgl.default.Marker({ element: markerEl, draggable: true })
+          .setLngLat(pin.lngLat as [number, number])
+          .addTo(map);
+
+        markersRef.current.set(id, marker);
+        pinsRef.current.set(id, pin);
+        // Build the route in the same order as pins
+        routeRef.current.push({ id, lngLat: pin.lngLat });
+
+        markerEl.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          if (isPathModeRef.current) return;
+          setSelected(pin);
+        });
+
+        marker.on("dragend", () => {
+          const pos = marker.getLngLat();
+          const updatedPin = { ...pin, lngLat: [pos.lng, pos.lat] as [number, number] };
+          pinsRef.current.set(id, updatedPin);
+          // Update routeRef for this pin as well
+          const rIdx = routeRef.current.findIndex(r => r.id === id);
+          if (rIdx >= 0) routeRef.current[rIdx].lngLat = [pos.lng, pos.lat];
+          if (onPinsChange) {
+            onPinsChange(Array.from(pinsRef.current.values()));
+          }
+          if (selected && selected.id === id) {
+            setSelected(updatedPin);
+          }
+          // Recompute route if needed
+          if (updateRouteLineRef.current) updateRouteLineRef.current();
+        });
+      }
+
+      // Do NOT call onPinsChange here to avoid parent-state render loops
+
+      // Draw directions between pins if enabled
+      if (updateRouteLineRef.current) await updateRouteLineRef.current();
+
+      // Save initial history snapshot
+      saveHistory();
+    })();
+  }, [mapReady, initialPins, createMarkerElement, saveHistory]);
+
   useEffect(() => {
     // Guard: do not re-initialize if map already exists
     if (mapRef.current) return;
@@ -892,6 +973,7 @@ export default function MapCanvas({
         };
 
         map.on("load", () => {
+          setMapReady(true);
           // Terrain source
           if (!map.getSource("mapbox-dem")) {
             map.addSource("mapbox-dem", {

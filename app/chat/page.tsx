@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/sidebar/Sidebar";
-import { Plus, Send, MapPin, Calendar } from "lucide-react";
+import { Plus, Send, MapPin, Calendar, ChevronDown } from "lucide-react";
 import ChatBubble from "@/components/chat/ChatBubble";
 import { motion, AnimatePresence } from "framer-motion";
 import TypingIndicator from "@/components/chat/ChatIndicator";
@@ -14,6 +14,11 @@ export type Message = {
   id: string;
   text: string;
   sender: "user" | "ai";
+  draftData?: {
+    draftId: string;
+    title: string;
+    description: string | null;
+  };
 };
 
 type Itinerary = {
@@ -41,6 +46,8 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+type ChatMode = "normal" | "itinerary";
+
 export default function ChatPage() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -51,11 +58,28 @@ export default function ChatPage() {
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [isLoadingItineraries, setIsLoadingItineraries] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<ChatMode>("normal");
+  const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false);
 
   // Fetch itineraries on mount
   useEffect(() => {
     fetchItineraries();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.mode-dropdown-container')) {
+        setIsModeDropdownOpen(false);
+      }
+    };
+
+    if (isModeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isModeDropdownOpen]);
 
   const fetchItineraries = async () => {
     setIsLoadingItineraries(true);
@@ -104,37 +128,113 @@ export default function ChatPage() {
     setIsAiTyping(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          message: currentInput, 
-          chatId: chatId 
-        }),
-      });
+      // If in itinerary mode, use the itinerary creation API
+      if (chatMode === "itinerary") {
+        const response = await fetch('/api/itineraries/create-ai', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            prompt: currentInput,
+            isPublic: false
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to get response from AI");
+        // Check content type before parsing
+        const contentType = response.headers.get("content-type");
+        let errorData: any = null;
+        
+        if (!response.ok) {
+          try {
+            if (contentType && contentType.includes("application/json")) {
+              errorData = await response.json();
+            } else {
+              const text = await response.text();
+              errorData = { error: text || `Server error: ${response.status}` };
+            }
+          } catch (parseError) {
+            errorData = { error: `Failed to create itinerary (${response.status})` };
+          }
+          
+          // Extract error message, with helpful suggestions
+          let errorMessage = errorData?.error || errorData?.message || `Failed to create itinerary (${response.status})`;
+          
+          // Log raw response for debugging if available
+          if (errorData?.rawResponse) {
+            console.error("[Chat] Raw AI response that failed to parse:", errorData.rawResponse);
+          }
+          
+          // If it's a parsing error, provide more helpful guidance
+          if (errorMessage.includes("parse AI response") || errorMessage.includes("parse")) {
+            errorMessage = "I had trouble understanding your request. Please try:\n- Being more specific about locations (e.g., 'Munnar, Kerala' instead of just 'Munnar')\n- Including the duration of your trip\n- Mentioning the type of places you want to visit";
+          }
+          
+          throw new Error(errorMessage);
+        }
+
+        // Parse successful response
+        let data: any;
+        try {
+          if (contentType && contentType.includes("application/json")) {
+            data = await response.json();
+          } else {
+            const text = await response.text();
+            throw new Error("Server returned non-JSON response");
+          }
+        } catch (parseError) {
+          throw new Error("Failed to parse server response");
+        }
+        
+        if (data.success && data.data) {
+          const aiMessage: Message = {
+            id: crypto.randomUUID(),
+            text: `I've created your itinerary: "${data.data.title}"`,
+            sender: "ai",
+            draftData: {
+              draftId: data.data.draftId,
+              title: data.data.title,
+              description: data.data.description || null,
+            },
+          };
+          setMessages((prevMessages) => [...prevMessages, aiMessage]);
+        } else {
+          throw new Error(data.error || "Failed to create itinerary - invalid response format");
+        }
+      } else {
+        // Normal chat mode
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            message: currentInput, 
+            chatId: chatId 
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to get response from AI");
+        }
+
+        const data = await response.json();
+        
+        const aiMessage: Message = {
+          id: crypto.randomUUID(),
+          text: data.reply,
+          sender: "ai",
+        };
+
+        setMessages((prevMessages) => [...prevMessages, aiMessage]);
+        setChatId(data.chatId);
       }
-
-      const data = await response.json();
-      
-      const aiMessage: Message = {
-        id: crypto.randomUUID(),
-        text: data.reply,
-        sender: "ai",
-      };
-
-      setMessages((prevMessages) => [...prevMessages, aiMessage]);
-      setChatId(data.chatId);
 
     } catch (error) {
       console.error(error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
-        text: "Sorry, I ran into an error. Please try again.",
+        text: error instanceof Error ? error.message : "Sorry, I ran into an error. Please try again.",
         sender: "ai",
       };
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
@@ -253,6 +353,53 @@ export default function ChatPage() {
                     </motion.p>
                   </div>
 
+                  {/* Mode Selector Dropdown */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 }}
+                    className="mb-4 flex justify-center"
+                  >
+                    <div className="relative mode-dropdown-container">
+                      <button
+                        onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-700 hover:border-violet-400 hover:bg-violet-50 transition-all text-sm font-medium shadow-sm"
+                      >
+                        <span>{chatMode === "normal" ? "Normal Chat" : "Make Itinerary on Map with AI"}</span>
+                        <ChevronDown 
+                          size={16} 
+                          className={`transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      {isModeDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl border-2 border-gray-200 shadow-xl z-50 overflow-hidden">
+                          <button
+                            onClick={() => {
+                              setChatMode("normal");
+                              setIsModeDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-violet-50 transition-colors ${
+                              chatMode === "normal" ? "bg-violet-50 text-violet-700 font-medium" : "text-gray-700"
+                            }`}
+                          >
+                            Normal Chat
+                          </button>
+                          <button
+                            onClick={() => {
+                              setChatMode("itinerary");
+                              setIsModeDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-violet-50 transition-colors ${
+                              chatMode === "itinerary" ? "bg-violet-50 text-violet-700 font-medium" : "text-gray-700"
+                            }`}
+                          >
+                            Make Itinerary on Map with AI
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+
                   {/* Centered Input */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -262,7 +409,7 @@ export default function ChatPage() {
                   >
                     <input
                       type="text"
-                      placeholder="Start your journey... Ask me anything!"
+                      placeholder={chatMode === "itinerary" ? "Describe your trip... e.g., 5-day trip to Kerala with backwaters" : "Start your journey... Ask me anything!"}
                       className="w-full text-gray-900 placeholder:text-gray-400 px-6 py-4 pr-14 rounded-2xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white shadow-lg transition-all text-lg"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
@@ -438,11 +585,53 @@ export default function ChatPage() {
               className="border-t border-gray-200 bg-white/80 backdrop-blur-sm sticky bottom-0"
             >
               <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-12 xl:px-16 py-4">
+                {/* Mode Selector */}
+                <div className="mb-3 flex justify-center">
+                  <div className="relative mode-dropdown-container">
+                    <button
+                      onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-violet-400 hover:bg-violet-50 transition-all text-xs font-medium shadow-sm"
+                    >
+                      <span>{chatMode === "normal" ? "Normal Chat" : "Make Itinerary"}</span>
+                      <ChevronDown 
+                        size={14} 
+                        className={`transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    {isModeDropdownOpen && (
+                      <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-xl border-2 border-gray-200 shadow-xl z-50 overflow-hidden">
+                        <button
+                          onClick={() => {
+                            setChatMode("normal");
+                            setIsModeDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 hover:bg-violet-50 transition-colors text-sm ${
+                            chatMode === "normal" ? "bg-violet-50 text-violet-700 font-medium" : "text-gray-700"
+                          }`}
+                        >
+                          Normal Chat
+                        </button>
+                        <button
+                          onClick={() => {
+                            setChatMode("itinerary");
+                            setIsModeDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 hover:bg-violet-50 transition-colors text-sm ${
+                            chatMode === "itinerary" ? "bg-violet-50 text-violet-700 font-medium" : "text-gray-700"
+                          }`}
+                        >
+                          Make Itinerary on Map with AI
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="relative flex items-center gap-2">
                   <div className="flex-1 relative">
                     <input
                       type="text"
-                      placeholder="Ask about your next destination..."
+                      placeholder={chatMode === "itinerary" ? "Describe your trip..." : "Ask about your next destination..."}
                       className="w-full text-gray-900 placeholder:text-gray-400 px-4 py-3 pr-12 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white shadow-sm transition-all"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}

@@ -42,7 +42,8 @@ export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"created" | "followed" | "saved">("created");
+  const [activeTab, setActiveTab] = useState<"created" | "followed" | "saved" | "drafts">("created");
+  const [drafts, setDrafts] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -85,6 +86,14 @@ export default function ProfilePage() {
         setUser(currentUser);
         setAvatarError(false); // Reset error state when user changes
         setLoading(false);
+        // Load drafts for the user
+        try {
+          const res = await fetch('/api/itineraries/my-drafts');
+          if (res.ok) {
+            const j = await res.json();
+            setDrafts(j.drafts || []);
+          }
+        } catch {}
       }
     })();
   }, [router]);
@@ -383,6 +392,7 @@ export default function ProfilePage() {
             { id: "created", label: "Itineraries Created" },
             { id: "followed", label: "Itineraries Followed" },
             { id: "saved", label: "Saved Itineraries" },
+            { id: "drafts", label: "Drafts" },
           ].map((t) => (
             <button
               key={t.id}
@@ -405,19 +415,28 @@ export default function ProfilePage() {
             transition={{ duration: 0.25 }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2"
           >
-            {(activeTab === "created" ? createdItineraries : activeTab === "followed" ? followedItineraries : savedItineraries).map((card) => (
+            {(activeTab === "created"
+              ? createdItineraries
+              : activeTab === "followed"
+              ? followedItineraries
+              : activeTab === "saved"
+              ? savedItineraries
+              : (drafts || []).map((d) => ({ id: d.id, title: d.title, category: d.description || "Draft", views: "—", img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?q=80&w=1200&auto=format&fit=crop", isDraft: true }))
+            ).map((card) => (
               <div key={card.id} className="group rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={card.img} alt={card.title} className="h-40 w-full object-cover" />
-                <div className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900 truncate">{card.title}</div>
-                      <div className="text-xs text-gray-500">{card.category}</div>
+                <a href={card.isDraft ? `/itineraries/add-itineraries/manual?draftId=${card.id}` : `#`} className="block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={card.img} alt={card.title} className="h-40 w-full object-cover" />
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900 truncate">{card.title}</div>
+                        <div className="text-xs text-gray-500">{card.category}</div>
+                      </div>
+                      <span className="text-xs text-gray-500">{card.views}</span>
                     </div>
-                    <span className="text-xs text-gray-500">{card.views}</span>
                   </div>
-                </div>
+                </a>
               </div>
             ))}
           </motion.div>

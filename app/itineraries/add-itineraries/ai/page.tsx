@@ -4,26 +4,89 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/sidebar/Sidebar";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function ItinAddAIPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"prompt" | "video">("prompt");
   const [prompt, setPrompt] = useState("");
   const [videoLink, setVideoLink] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [processingStage, setProcessingStage] = useState<string>("");
 
   const handleSubmit = async () => {
     if (activeTab === "prompt" && !prompt.trim()) {
+      setError("Please enter a travel description");
       return;
     }
     if (activeTab === "video" && !videoLink.trim()) {
+      setError("Please enter a video URL");
       return;
     }
 
     setIsProcessing(true);
-    // TODO: Implement AI processing logic
-    setTimeout(() => {
+    setError(null);
+    setSuccess(false);
+    setProcessingStage("Analyzing your request...");
+
+    try {
+      const endpoint = activeTab === "video" ? "/api/itineraries/create-ai-from-video" : "/api/itineraries/create-ai";
+      const payload = activeTab === "video" 
+        ? { videoUrl: videoLink, isPublic: false } 
+        : { prompt, isPublic: false };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      // Check if response is actually JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Non-JSON response received:", text.substring(0, 500));
+        throw new Error(
+          `Server returned an error. ${response.status === 404 ? "API endpoint not found." : "Please check your configuration."}`
+        );
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create itinerary");
+      }
+
+      setProcessingStage("Success! Preparing your itinerary for review...");
+      setSuccess(true);
+
+      // Store itinerary data in sessionStorage and redirect to manual page
+      if (data.data) {
+        sessionStorage.setItem('aiGeneratedItinerary', JSON.stringify(data.data));
+        if (data.data.draftId) {
+          sessionStorage.setItem('aiGeneratedDraftId', data.data.draftId);
+        }
+      }
+
+      // Redirect to manual page for this draft id if present
+      setTimeout(() => {
+        if (data.data?.draftId) {
+          router.push(`/itineraries/add-itineraries/manual?draftId=${data.data.draftId}`);
+        } else {
+          router.push(`/itineraries/add-itineraries/manual`);
+        }
+      }, 1500);
+    } catch (err: any) {
+      console.error("Error creating itinerary:", err);
+      setError(err.message || "An error occurred while creating your itinerary");
+      setProcessingStage("");
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -282,6 +345,105 @@ export default function ItinAddAIPage() {
             )}
           </AnimatePresence>
 
+          {/* Error Message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mt-0.5 flex-shrink-0"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="font-semibold mb-1">Error</p>
+                    <p>{error}</p>
+                  </div>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-red-600 hover:text-red-800 flex-shrink-0"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Success Message */}
+          <AnimatePresence>
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800 text-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="flex-shrink-0"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold">Success!</p>
+                    <p>Your itinerary has been created. Redirecting...</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Processing Stage */}
+          {isProcessing && processingStage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <p>{processingStage}</p>
+              </div>
+            </motion.div>
+          )}
+
           {/* Submit Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -301,7 +463,7 @@ export default function ItinAddAIPage() {
               {isProcessing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Processing...</span>
+                  <span>{processingStage || "Processing..."}</span>
                 </>
               ) : (
                 <>

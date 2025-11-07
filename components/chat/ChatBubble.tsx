@@ -2,18 +2,19 @@
 "use client";
 
 import { Message } from "@/app/chat/page";
-import { User, Bot, Copy, Check } from "lucide-react";
+import { User, Bot, Copy, Check, MapPin, ArrowRight } from "lucide-react";
 import ReactMarkdown, { ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 type ChatBubbleProps = {
   message: Message;
 };
 
 export default function ChatBubble({ message }: ChatBubbleProps) {
-  const { text, sender } = message;
+  const { text, sender, draftData } = message;
   const isUser = sender === "user";
   const [copied, setCopied] = useState(false);
   const [displayedText, setDisplayedText] = useState("");
@@ -108,10 +109,11 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
                 {text}
               </p>
             ) : (
-              <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-p:text-gray-800 prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:text-fuchsia-600">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
+              <div className="space-y-3">
+                <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-p:text-gray-800 prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:text-fuchsia-600">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
                     // Paragraphs
                     p: ({ node, ...props }) => (
                       <p 
@@ -320,16 +322,54 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
                     ),
                   }}
                 >
-                  {displayedText}
-                </ReactMarkdown>
-                
-                {/* Typing cursor indicator */}
-                {isAnimating && (
-                  <motion.span
-                    animate={{ opacity: [1, 0, 1] }}
-                    transition={{ duration: 0.8, repeat: Infinity }}
-                    className="inline-block w-0.5 h-4 bg-violet-500 ml-0.5"
-                  />
+                    {displayedText}
+                  </ReactMarkdown>
+                  
+                  {/* Typing cursor indicator */}
+                  {isAnimating && (
+                    <motion.span
+                      animate={{ opacity: [1, 0, 1] }}
+                      transition={{ duration: 0.8, repeat: Infinity }}
+                      className="inline-block w-0.5 h-4 bg-violet-500 ml-0.5"
+                    />
+                  )}
+                </div>
+
+                {/* Draft Card */}
+                {draftData && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-4"
+                  >
+                    <Link 
+                      href={`/itineraries/add-itineraries/manual?draftId=${draftData.draftId}`}
+                      className="block group"
+                    >
+                      <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 border-2 border-violet-200 rounded-xl p-4 hover:border-violet-300 hover:shadow-lg transition-all cursor-pointer">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shrink-0 shadow-md">
+                            <MapPin size={24} className="text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 group-hover:text-violet-700 transition-colors">
+                              {draftData.title}
+                            </h4>
+                            {draftData.description && (
+                              <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                                {draftData.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 text-xs text-violet-600 font-medium">
+                              <span>Open Draft</span>
+                              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
                 )}
               </div>
             )}
