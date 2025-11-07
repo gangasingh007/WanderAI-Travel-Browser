@@ -148,8 +148,8 @@ export async function POST(request: Request) {
       success: true,
       data: {
         draftId: itineraryId,
-        title: itin.title,
-        description: itin.description,
+        title: (itin as any).title,
+        description: (itin as any).description,
         isPublic: false,
         pins: formattedPins,
       }

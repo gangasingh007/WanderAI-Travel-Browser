@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
-  request: Request,
-  ctx: { params?: { id?: string } } = {}
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -12,8 +12,9 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Be resilient if params are undefined during HMR
-    let itineraryId = ctx?.params?.id;
+    // Await params (Next.js 15+ pattern)
+    const params = await context.params;
+    let itineraryId = params?.id;
     if (!itineraryId) {
       try {
         const url = new URL(request.url);

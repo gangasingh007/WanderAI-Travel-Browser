@@ -424,7 +424,7 @@ export default function ProfilePage() {
               : (drafts || []).map((d) => ({ id: d.id, title: d.title, category: d.description || "Draft", views: "—", img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?q=80&w=1200&auto=format&fit=crop", isDraft: true }))
             ).map((card) => (
               <div key={card.id} className="group rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition">
-                <a href={card.isDraft ? `/itineraries/add-itineraries/manual?draftId=${card.id}` : `#`} className="block">
+                <a href={('isDraft' in card && card.isDraft) ? `/itineraries/add-itineraries/manual?draftId=${card.id}` : `#`} className="block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={card.img} alt={card.title} className="h-40 w-full object-cover" />
                   <div className="p-4">

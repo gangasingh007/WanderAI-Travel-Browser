@@ -174,7 +174,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
                     },
                     
                     // Code blocks
-                    code: (props: JSX.IntrinsicElements["code"] & ExtraProps) => {
+                    code: (props: React.ComponentProps<"code"> & ExtraProps) => {
                       const { children, className, node, ...rest } = props;
                       const match = /language-(\w+)/.exec(className || '');
                       const isInlineCode = !match && !className?.includes('language-');
