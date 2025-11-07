@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentUser, signOut } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Sidebar from "@/components/sidebar/Sidebar";
+import StoriesSection from "@/components/following/StoriesSection";
+import SuggestedCreators from "@/components/following/SuggestedCreators";
+import MessagesPanel from "@/components/following/MessagesPanel";
+import FollowingFeed from "@/components/following/FollowingFeed";
 
 export default function FollowingPage() {
   const [user, setUser] = useState<any>(null);
@@ -23,11 +27,6 @@ export default function FollowingPage() {
     })();
   }, [router]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/");
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -42,17 +41,33 @@ export default function FollowingPage() {
   return (
     <div className="min-h-screen bg-white flex">
       <Sidebar />
-      <main className="flex-1 px-8 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-black">Following</h1>
-          <button onClick={handleSignOut} className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">Sign Out</button>
-        </div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="rounded-2xl border border-gray-200 bg-gray-50 h-[70vh] flex items-center justify-center text-gray-600">
-          Following feed coming soon
-        </motion.div>
-      </main>
+      <div className="flex-1 flex gap-6 w-full">
+        {/* Main Content Area - Full Width */}
+        <main className="flex-1 px-6 py-6">
+          {/* Following Heading */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold text-gray-900">Following</h1>
+          </div>
+
+          {/* Stories Section */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6 shadow-sm">
+            <StoriesSection />
+          </div>
+
+          {/* Following Feed */}
+          <FollowingFeed />
+        </main>
+
+        {/* Right Sidebar - Hidden on mobile/tablet */}
+        <aside className="w-80 hidden xl:block px-6 py-6">
+          <div className="sticky top-6">
+            <SuggestedCreators />
+          </div>
+        </aside>
+      </div>
+
+      {/* Compact Messages Button */}
+      <MessagesPanel />
     </div>
   );
 }
-
-
