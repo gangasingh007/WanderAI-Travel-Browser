@@ -54,7 +54,7 @@ The journey was a perfect blend of history, culture, and incredible food. Each c
           city: 'Delhi',
           coordinates: [77.2339, 28.6506],
           description: 'One of the largest mosques in India, built by Shah Jahan with stunning red sandstone and white marble.',
-          image: 'https://images.unsplash.com/photo-1609258678760-ba05d9b95bb9?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=735',
+          image: 'https://images.unsplash.com/photo-1554720372-43797b5b4a70?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170',
           visitDuration: '1-2 hours',
           bestTime: 'Early morning or evening',
           tips: 'Dress modestly. The view from the minaret is worth the climb.'
@@ -76,7 +76,7 @@ The journey was a perfect blend of history, culture, and incredible food. Each c
           city: 'Agra',
           coordinates: [78.0269, 27.1797],
           description: 'A UNESCO World Heritage site, this red sandstone fort offers stunning views of the Taj Mahal.',
-          image: 'https://plus.unsplash.com/premium_photo-1697729441569-f706fdd1f71c?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170',
+          image: 'https://images.unsplash.com/photo-1668361984091-86ca775c3a90?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=735',
           visitDuration: '2-3 hours',
           bestTime: 'Late afternoon',
           tips: 'Combine with Taj Mahal visit. The fort has beautiful gardens and palaces inside.'
