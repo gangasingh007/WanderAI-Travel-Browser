@@ -377,7 +377,7 @@ export default function ItinAddAIPage() {
                   <button
                     onClick={() => setError(null)}
                     className="text-red-600 hover:text-red-800 flex-shrink-0"
-                  >
+                  >{}
                     <svg
                       width="18"
                       height="18"
